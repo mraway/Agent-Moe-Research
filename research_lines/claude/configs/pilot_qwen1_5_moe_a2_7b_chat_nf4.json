@@ -1,0 +1,20 @@
+{
+  "model_id": "Qwen/Qwen1.5-MoE-A2.7B-Chat",
+  "revision": "ec052fda178e241c7c443468d2fa1db6618996be",
+  "_revision_note": "Resolved 2026-09-06 via huggingface_hub.model_info('Qwen/Qwen1.5-MoE-A2.7B-Chat').sha. 28.63 GB of bf16 safetensors.",
+  "_fallback_note": "FALLBACK MODEL, NOT the planned pilot model. Qwen/Qwen3-30B-A3B-Instruct-2507 is infeasible on one 32 GB RTX 5090 with transformers 5.16.1 (see configs/pilot_qwen3_30b_a3b_nf4.json _pilot_verdict). Qwen1.5-MoE-A2.7B-Chat is the second Qwen MoE used only to exercise the same 12-trace pipeline: qwen2_moe family, 24 layers, 60 routed experts, top-4, norm_topk_prob false, plus one always-on shared expert that is NOT routed and therefore not captured.",
+  "cache_dir": "artifacts/hf_cache",
+  "dtype": "bfloat16",
+  "device_map": "cuda",
+  "attn_implementation": "sdpa",
+  "router_adapter": "qwen3_moe",
+  "seed": 1234,
+  "max_new_tokens": 384,
+  "quantization": {
+    "method": "bnb_nf4",
+    "double_quant": true,
+    "modules_to_not_convert": ["lm_head", "mlp.gate", "embed_tokens"],
+    "_note": "NF4 reaches only the nn.Linear modules: self_attn.{q,k,v,o}_proj, mlp.shared_expert.{gate,up,down}_proj and mlp.shared_expert_gate (~1.23 B params). The 12.46 B routed-expert parameters live in the fused 3-D Qwen2MoeExperts.gate_up_proj / down_proj and stay bf16, exactly as on Qwen3-MoE; here that is affordable because bf16 experts are only ~24.9 GB. Routers (mlp.gate), embeddings and lm_head stay bf16 so router logits are exact."
+  },
+  "_pilot_role": "engineering_pilot_not_data"
+}

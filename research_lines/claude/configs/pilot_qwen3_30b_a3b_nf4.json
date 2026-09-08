@@ -1,0 +1,24 @@
+{
+  "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+  "revision": "0d7cf23991f47feeb3a57ecb4c9cee8ea4a17bfe",
+  "_revision_note": "Resolved 2026-09-06 via huggingface_hub.model_info('Qwen/Qwen3-30B-A3B-Instruct-2507').sha. The 61.07 GB bf16 safetensors were deliberately NOT downloaded: every 32 GB-fitting load path was ruled out first (see _pilot_verdict).",
+  "cache_dir": "artifacts/hf_cache",
+  "dtype": "bfloat16",
+  "device_map": "cuda",
+  "attn_implementation": "sdpa",
+  "router_adapter": "qwen3_moe",
+  "seed": 1234,
+  "max_new_tokens": 384,
+  "quantization": {
+    "method": "bnb_nf4",
+    "double_quant": true,
+    "modules_to_not_convert": [
+      "lm_head",
+      "mlp.gate",
+      "embed_tokens"
+    ],
+    "_note": "modules_to_not_convert keeps the routers, embeddings and lm_head in bf16 so router logits stay exact. WARNING (transformers 5.16.1): Qwen3MoeExperts stores gate_up_proj/down_proj as fused 3-D nn.Parameter tensors, not nn.Linear, and transformers' replace_with_bnb_linear only converts nn.Linear/Conv1D. NF4 therefore quantises the attention projections and lm_head ONLY, leaving ~28 B expert parameters in bf16 (~57 GB). Verify resident memory on a dry load before the full pilot; see docs/research_v3/model_pilot_adapters.md for the options."
+  },
+  "_pilot_role": "engineering_pilot_not_data",
+  "_pilot_verdict": "DOES NOT FIT on one RTX 5090 (32 GB) with transformers 5.16.1. This config is kept only as the documented negative result and MUST NOT be used to claim NF4 works. Confirmed on 2026-09-06: (a) bitsandbytes NF4 and (b) torchao Int8WeightOnly / Int4WeightOnly both convert ONLY nn.Linear, i.e. self_attn.{q,k,v,o}_proj; Qwen3MoeExperts.gate_up_proj / down_proj stay bf16 plain tensors (~29.0 B expert params = ~58 GB). (c) compressed-tensors / AWQ / GPTQ 4-bit checkpoints are per-expert nn.Linear on disk and transformers merges them into the fused 3-D parameter via DecompressExperts, which DEQUANTISES the experts to bf16 first -> same ~58 GB. (d) FineGrainedFP8Config and the official -FP8 checkpoint both crash in transformers 5.16.1 quantizers/quantizer_finegrained_fp8.py:195 update_tp_plan with AttributeError NoneType has no attribute get, and at 31.18 GB of FP8 weights would not fit in the 29.1 GB of free VRAM anyway."
+}

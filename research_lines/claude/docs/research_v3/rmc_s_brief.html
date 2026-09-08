@@ -1,0 +1,350 @@
+<title>RMC-S 简报</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F5F7FA; --surface: #FFFFFF; --ink: #18212B; --muted: #5B6975; --line: #D6DDE4; --line-soft: #E8EDF2;
+    --accent: #0F7B84; --accent-soft: #D7EEF0; --second: #B4712A; --third: #8A97A3; --fourth: #C3CCD5;
+    --alarm: #B23A3A; --ok: #2E7D4F; --rare: #E0642F; --grid-cell: #E3E9EF; --grid-used: #B9D9DC; --done: #2E7D4F; --doing: #B4712A; --todo: #8A97A3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F151B; --surface: #161E26; --ink: #E7ECF1; --muted: #A2AFBA; --line: #2B3640; --line-soft: #202A34;
+      --accent: #3CBAC2; --accent-soft: #123E43; --second: #D89A4E; --third: #8593A0; --fourth: #3B4752;
+      --alarm: #E06868; --ok: #5FBF85; --rare: #F08050; --grid-cell: #212B35; --grid-used: #1E4A4E; --done: #5FBF85; --doing: #D89A4E; --todo: #8593A0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F151B; --surface: #161E26; --ink: #E7ECF1; --muted: #A2AFBA; --line: #2B3640; --line-soft: #202A34;
+    --accent: #3CBAC2; --accent-soft: #123E43; --second: #D89A4E; --third: #8593A0; --fourth: #3B4752;
+    --alarm: #E06868; --ok: #5FBF85; --rare: #F08050; --grid-cell: #212B35; --grid-used: #1E4A4E; --done: #5FBF85; --doing: #D89A4E; --todo: #8593A0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .page { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  .prose { max-width: 740px; }
+  h1, h2, h3 { font-family: "Noto Serif SC", "Songti SC", "SimSun", serif; text-wrap: balance; line-height: 1.3; margin: 0; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; font-weight: 600; margin: 56px 0 14px; padding-top: 18px; border-top: 1px solid var(--line); }
+  h2 .no { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; color: var(--accent); letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
+  h3 { font-size: 17px; font-weight: 600; margin: 22px 0 8px; }
+  p { margin: 0 0 14px; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  .lede { font-size: 18px; color: var(--muted); margin-top: 14px; max-width: 700px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 22px 0 6px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px 14px; }
+  .tile .k { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 30px; font-weight: 600; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .tile .k.alarm { color: var(--alarm); }
+  .tile .k small { font-size: 15px; color: var(--muted); font-weight: 400; margin-left: 4px; }
+  .tile .l { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  figure { margin: 20px 0 28px; background: var(--surface); border: 1px solid var(--line); padding: 18px 18px 12px; }
+  figure .fig-title { font-size: 13px; font-weight: 500; letter-spacing: 0.02em; margin-bottom: 10px; }
+  figure .fig-title .n { font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--accent); margin-right: 10px; }
+  figcaption { font-size: 13px; color: var(--muted); line-height: 1.55; margin-top: 8px; max-width: 820px; }
+  .scroll { overflow-x: auto; }
+  svg text { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; fill: var(--ink); }
+  svg text.cn { font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif; }
+  svg .muted { fill: var(--muted); }
+  svg .axis { stroke: var(--line); stroke-width: 1; }
+  svg .grid { stroke: var(--line-soft); stroke-width: 1; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); margin: 6px 0 4px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; }
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 8px 0 4px; }
+  .step { border: 1px solid var(--line); padding: 12px 12px 10px; background: var(--bg); min-height: 120px; }
+  .step .t { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; }
+  .step .h { font-weight: 700; margin: 4px 0 6px; font-size: 15px; }
+  .step .d { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 10px 0 8px; }
+  .card { background: var(--surface); border: 1px solid var(--line); padding: 14px 16px 12px; }
+  .card .h { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .card .d { font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+  .card .d b { color: var(--ink); font-weight: 500; }
+  .callout { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; margin: 16px 0; font-size: 15px; }
+  .road { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+  .road li { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); }
+  .road .st { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 3px; }
+  .road .st::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; background: var(--todo); }
+  .road li.done .st { color: var(--done); } .road li.done .st::before { background: var(--done); }
+  .road li.doing .st { color: var(--doing); } .road li.doing .st::before { background: var(--doing); }
+  .road li.todo .st { color: var(--todo); }
+  .road .b { font-size: 14px; line-height: 1.55; } .road .b b { font-weight: 700; }
+  ul { padding-left: 20px; margin: 0 0 14px; } li { margin-bottom: 6px; }
+  .foot { font-size: 12.5px; color: var(--muted); margin-top: 48px; padding-top: 14px; border-top: 1px solid var(--line); line-height: 1.6; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 720px) { .tiles, .flow, .cards { grid-template-columns: 1fr; } h1 { font-size: 28px; } .road li { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">研究简报 · 2026 年 9 月 · 五分钟版</div>
+    <h1>基于 MoE 路由的 Agent 任务偏移在线检测</h1>
+    <p class="lede">当一个客服 Agent 被诱导去写代码、写诗或做法律分析时，模型内部会先"换一批专家"来算，然后才在文本里露出痕迹。我们只用这份推理时免费产生的路由记录，在偏移刚开始时给出经校准的风险信号。</p>
+    <div class="meta">
+      <span>当前模型 <b>OLMoE-1B-7B</b>（16 层 × 64 专家，每 token 选 8 个）</span>
+      <span>下一模型 <b>gpt-oss-20b</b>（24 层 × 32 专家，选 4 个）</span>
+      <span>证据等级 <b>开发数据，未做封存确认</b></span>
+    </div>
+  </header>
+
+  <section class="prose">
+    <h2><span class="no">01</span>问题定义</h2>
+    <p>Agent 服务把大模型放进"读输入、调工具、写回复"的循环里。攻击者可以通过用户消息、工具返回值或多轮对话把题外任务塞进来。我们关心的不是"输入里有没有攻击文本"，而是<b>模型有没有真的开始做那件事</b>，并且要在它做完之前知道。</p>
+    <p>MoE 模型每生成一个 token，每一层都要从几十个专家里挑几个来算。这个选择记录（路由）在推理时已经存在，读取它不需要额外计算，也不需要读文本。问题于是变成：<b>只看路由，能否在线、及时、可校准地判断生成是否进入了题外计算？</b>检测器的定位是安全系统里的一路信号，不是唯一决策。</p>
+  </section>
+  <figure>
+    <div class="fig-title"><span class="n">图 1</span>偏移的三个层次，以及信号能在哪里看见它</div>
+    <div class="scroll"><svg id="fig-events" viewBox="0 0 900 200" width="100%" role="img" aria-label="E、C、X 三个事件在时间轴上的位置"></svg></div>
+    <figcaption>参与（E）：模型开始处理题外任务，通常先出现在它的内部思考里；承诺（C）：决定去做；产出（X）：交付题外内容或执行未授权动作。文本监测通常要到 X 才看得见，而路由在 E/C 就已经变化。我们的主事件是 E，抵御还是执行是它的下游子分类。</figcaption>
+  </figure>
+
+  <section class="prose">
+    <h2><span class="no">02</span>潜在的创新点</h2>
+    <div class="cards">
+      <div class="card"><div class="h">路由轨迹作为 Agent 偏移信号</div><div class="d">没有先前工作把 MoE 专家路由用于 Agent 任务偏移的在线检测。最近的工作要么用稠密模型的激活（TaskTracker，单轮提示），要么用路由做有害提示审计（RouteScan，预填充阶段）。我们看的是<b>生成阶段、逐 token、跨多步工具调用</b>的路由轨迹。</div></div>
+      <div class="card"><div class="h">只学正常流量，误报有保证</div><div class="d">检测器只从正常客服流量学习一个"常规流形"，不需要攻击样本训练。阈值用序贯保形校准给出：在可交换性下，<b>每个 episode 的误报率不超过预算</b>，且可以随时读取，无需额外前向计算。</div></div>
+      <div class="card"><div class="h">以"及时性"而非 AUROC 为主指标</div><div class="d">整条轨迹看完后几乎任何分数都能分辨偏移（AUROC 0.97 到 0.99）。真正有价值的是<b>偏移起点后 8 或 16 个 token 内</b>能否报警，锚点前的报警按严格口径算漏检。这一评价协议本身是贡献之一。</div></div>
+      <div class="card"><div class="h">机制解释：支持集扩张 vs 支持集内重加权</div><div class="d">多数题外任务会征用正常流量几乎不用的专家（支持集扩张），代码类任务却只在常用专家里重新分配权重。这个发现同时解释了算法为什么有效、盲区在哪，以及下一步该测什么。</div></div>
+    </div>
+  </section>
+  <figure>
+    <div class="fig-title"><span class="n">图 2</span>与相近工作的定位</div>
+    <div class="scroll"><svg id="fig-position" viewBox="0 0 900 300" width="100%" role="img" aria-label="信号来源与检测对象的二维定位图"></svg></div>
+    <figcaption>横轴是检测对象的粒度，纵轴是信号来源。右上角的格子此前是空的。</figcaption>
+  </figure>
+
+  <section class="prose">
+    <h2><span class="no">03</span>已有的发现</h2>
+    <p>在 OLMoE 上的一个固定范围客服 Agent 与 920 条轨迹（正常、对照、攻击三臂，锚点由两位标注者互盲标注）上，经过多轮实验与三路独立审计，以下结论跨轮次稳定：</p>
+  </section>
+  <figure>
+    <div class="fig-title"><span class="n">图 3</span>正常流量只用一小片专家；题外任务会征用其余坐标</div>
+    <div class="scroll"><svg id="fig-grid" viewBox="0 0 900 250" width="100%" role="img" aria-label="16 层 × 64 专家的路由网格示意"></svg></div>
+    <div class="legend"><span><i style="background:var(--grid-cell)"></i>正常流量几乎不用（稀有坐标）</span><span><i style="background:var(--grid-used)"></i>正常流量常用</span><span><i style="background:var(--accent)"></i>正常 token 的选择</span><span><i style="background:var(--rare)"></i>偏移 token 落在稀有坐标的选择</span></div>
+    <figcaption>示意图，比例取自真实数据：80 条正常轨迹之后，1024 个（层, 专家）坐标里只有 71 个仍是稀有坐标。</figcaption>
+  </figure>
+  <section class="prose">
+    <div class="cards">
+      <div class="card"><div class="h">路由跟踪的是"开始想"，不是"写出来"</div><div class="d">两条独立研究线一致：路由信号对应 E 和 C，不对应 X。以产出为锚点看到的"提前报警"，几乎全部落在同一条轨迹的参与起点之后。</div></div>
+      <div class="card"><div class="h">价值在早，不在分辨</div><div class="d">整轨迹 AUROC 对任何分数都接近 1；差别只出现在起点后的前 8 到 16 个 token。延迟约等于窗口宽度加阈值裕度，裕度占主导。</div></div>
+      <div class="card"><div class="h">误报被校准钉在预算上</div><div class="d">保形校准下总误报等于预算；持久性、块均值、CUSUM 只移动 ROC 点。"上下文里提到了题外话题"是主要的可解释误报类，从不出现在纯正常臂。</div></div>
+      <div class="card"><div class="h">阈值必须在部署环境校准</div><div class="d">用另一批正常流量预先定好的阈值在新环境上误报升到 0.13 到 0.28。每个校准半份需要 90 条以上正常轨迹，40 条时工作点由 4 条轨迹决定。</div></div>
+      <div class="card"><div class="h">代码 / SQL 是结构性盲区</div><div class="d">代码类偏移不征用冷门专家，只沿正常流量自己的"散文到工具调用 JSON"轴重新分配权重。任何只看"选没选"的统计量都看不见它。</div></div>
+      <div class="card"><div class="h">权重携带额外信息，但尾更重</div><div class="d">0/1 选择丢掉的那部分权重方差正是分开代码的部分（AUC 0.96 对 0.77），但它的跨池极值尾是选择量的 2 到 3 倍，在小校准池下换不来及时性。</div></div>
+    </div>
+  </section>
+  <figure>
+    <div class="fig-title"><span class="n">图 4</span>为什么代码看不见：可分性中来自稀有坐标的份额</div>
+    <div class="scroll"><svg id="fig-code" viewBox="0 0 900 150" width="100%" role="img" aria-label="稀有坐标能量份额对比"></svg></div>
+    <figcaption>其他域偏移的可分性有 78% 来自正常流量几乎不用的专家；代码类只有 13 到 20%，冷门专家使用量与正常流量相同。</figcaption>
+  </figure>
+
+  <section class="prose">
+    <h2><span class="no">04</span>初步算法结果：RMC-S</h2>
+    <p>把上面的发现做成最简可部署形态：只对"稀有坐标被征用"计分，8 个 token 的因果窗口，部署侧保形校准，三档状态输出。</p>
+  </section>
+  <figure>
+    <div class="fig-title"><span class="n">图 5</span>从路由记录到报警状态</div>
+    <div class="flow">
+      <div class="step"><div class="t">1 · 观测</div><div class="h">读每层的专家选择</div><div class="d">每个生成 token、每层 8 个专家 id。不读概率，不读文本。</div></div>
+      <div class="step"><div class="t">2 · 统计量</div><div class="h">稀有坐标计分</div><div class="d">正常流量选择率低于 2% 的坐标被选中时才计分，分值是它的稀有程度；取 8 个 token 的窗口均值。</div></div>
+      <div class="step"><div class="t">3 · 校准</div><div class="h">与正常路径的最大值比</div><div class="d">在线 running max 与部署环境正常路径各自的全路径最大值比较，得到逐 token 单调的 p 值。</div></div>
+      <div class="step"><div class="t">4 · 输出</div><div class="h">状态、证据、归因</div><div class="d">p 值流；SILENT / PROVISIONAL / CONFIRMED 三档；最近 8 个 token 的证据窗与贡献最大的 3 个（层, 专家）。</div></div>
+    </div>
+    <figcaption>每 token 成本是 128 次查表和一次比较。推荐的二值报警是 CONFIRMED（p ≤ 0.10）。</figcaption>
+  </figure>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">24<small>/ 45</small></div><div class="l">偏移起点后 8 个 token 内检出的正例（384-token 长输出批次）。同一批正例上，白化距离基线 15/45，surprisal 基线 14/45。</div></div>
+    <div class="tile"><div class="k">0.05<small>–0.08</small></div><div class="l">纯正常任务上的误报率，预算 0.10。上下文提到题外话题但没做的对照臂：0.12 到 0.15。</div></div>
+    <div class="tile"><div class="k alarm">0<small>/ 34</small></div><div class="l">代码 / SQL 类产出在 8 个 token 内的检出数，两条研究线一致。</div></div>
+  </div>
+
+  <figure>
+    <div class="fig-title"><span class="n">图 6</span>偏移起点后 8 个 token 内的检出数，四种方法，三个评价目标</div>
+    <div class="scroll"><svg id="fig-recall" viewBox="0 0 900 300" width="100%" role="img" aria-label="R+8 分组柱状图"></svg></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>S（RMC-S）</span><span><i style="background:var(--second)"></i>M 白化距离</span><span><i style="background:var(--third)"></i>surprisal 基线</span><span><i style="background:var(--fourth)"></i>三通道融合（预注册主候选）</span></div>
+    <figcaption>S 对 M 的配对精确检验 p 值分别为 0.004、0.125、0.012。到 +16 差距缩小，到轨迹结束时相同：S 是更早的信号，不是更完整的信号。预注册的三通道融合反而最差，因为预算分摊后单个通道在小校准池上连一次报警都不可达。</figcaption>
+  </figure>
+
+  <figure>
+    <div class="fig-title"><span class="n">图 7</span>误报率：纯正常臂与对照臂</div>
+    <div class="scroll"><svg id="fig-far" viewBox="0 0 900 250" width="100%" role="img" aria-label="误报率柱状图"></svg></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>S · 正常臂</span><span><i style="background:var(--accent);opacity:.45"></i>S · 对照臂</span><span><i style="background:var(--second)"></i>M · 正常臂</span><span><i style="background:var(--second);opacity:.45"></i>M · 对照臂</span></div>
+  </figure>
+
+  <figure>
+    <div class="fig-title"><span class="n">图 8</span>两条独立研究线的 36 个冻结方法在同一口径下的及时性（参与起点，n = 45）</div>
+    <div class="scroll"><svg id="fig-unified" viewBox="0 0 900 330" width="100%" role="img" aria-label="统一比较横向柱状图"></svg></div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>+8 内检出</span><span><i style="background:var(--accent);opacity:.35"></i>+16 内检出</span></div>
+    <figcaption>8-token 的"常规流形"家族整体早于 16-token 的"层动力学"家族；两条线独立构造的"未见专家"规则与秩检测器全部零报警。</figcaption>
+  </figure>
+
+  <section class="prose">
+    <div class="callout">对生产系统的含义：作为多信号融合的一路输入，它提供的是早期、可校准、可归因到具体专家坐标的证据。已知边界写得出来：代码 / SQL 类产出需要另一路信号（一条零误报的文本规则能确认，但平均迟 17 个 token）；阈值必须用部署环境自己的正常流量校准。</div>
+  </section>
+
+  <section class="prose">
+    <h2><span class="no">05</span>未来的工作</h2>
+    <p>当前证据来自单一小模型、单一 Agent、每格 31 到 45 条正例的开发数据，且工具由控制器执行，模型从不真正做出不可逆动作。下一阶段的目标是把"选哪个算法"建立在封存证据上，并把不可逆动作变成真实事件。</p>
+    <ul class="road">
+      <li class="done"><span class="st">已完成</span><span class="b"><b>换到 gpt-oss-20b，重建 Agent v3。</b>模型自主调用工具（受限工具作为不可逆动作的桩），推理通道可见，"想歪但没做"可测。</span></li>
+      <li class="done"><span class="st">已完成</span><span class="b"><b>正常池 600 条，全部盲态标注。</b>过滤通过率 94.5%，全部无题外参与；校准视界 H 按规则冻结在 352 个窗口端点（约 380 token）。</span></li>
+      <li class="doing"><span class="st">进行中</span><span class="b"><b>攻击集 G-dev 生成。</b>144 场景 × 三臂加 120 条补充，三种注入渠道、三档措辞、代码域单列配额；随后两位互盲标注者标 E/C/X 与恢复片段。</span></li>
+      <li class="todo"><span class="st">计划</span><span class="b"><b>预注册 v3.1 与封存确认。</b>单一主格（S 对 M 对 surprisal，参与起点 +16），实测误报匹配，按场景聚类的 bootstrap；720 条确认集只解封一次。</span></li>
+      <li class="todo"><span class="st">计划</span><span class="b"><b>代码盲区的补充臂。</b>把权重感知统计量（集合内残差质量、逐层分布散度）作为固定额外误报预算下的 OR 臂预注册，入门条件是 +16 内有非零召回。</span></li>
+      <li class="todo"><span class="st">计划</span><span class="b"><b>外部效度与隐状态基线。</b>在 tau2-bench 客服环境上移植现成攻击集做第二条工作负载线；实现 TaskTracker 风格的残差探针作为上界基线。</span></li>
+    </ul>
+  </section>
+
+  <div class="foot">数字取自完整技术报告 docs/research_v3/technical_report_rmc.md 的主表与经审计的统一比较表；冻结提交 55b6e23。图 1、2、3 为示意图，其余为实验数据。</div>
+</div>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function text(parent, x, y, s, attrs) { var t = el('text', Object.assign({ x: x, y: y, 'font-size': 12 }, attrs || {}), parent); t.textContent = s; return t; }
+  var css = getComputedStyle(document.documentElement);
+  function v(name) { return css.getPropertyValue(name).trim(); }
+
+  /* Fig 1: event hierarchy on a token axis */
+  (function () {
+    var svg = document.getElementById('fig-events');
+    var ox = 40, pw = 820, y = 110;
+    el('line', { x1: ox, x2: ox + pw, y1: y, y2: y, class: 'axis', 'stroke-width': 2 }, svg);
+    text(svg, ox + pw, y + 26, '生成 token →', { class: 'muted cn', 'font-size': 11, 'text-anchor': 'end' });
+    var marks = [
+      { x: 0.08, label: '注入到达', sub: '输入里出现攻击文本', col: v('--third') },
+      { x: 0.32, label: 'E 参与', sub: '模型开始处理题外任务', col: v('--accent') },
+      { x: 0.50, label: 'C 承诺', sub: '决定去做', col: v('--accent') },
+      { x: 0.74, label: 'X 产出', sub: '交付内容 / 执行动作', col: v('--alarm') }
+    ];
+    marks.forEach(function (m) {
+      var x = ox + pw * m.x;
+      el('circle', { cx: x, cy: y, r: 7, fill: m.col }, svg);
+      text(svg, x, y - 22, m.label, { class: 'cn', 'font-size': 13, 'text-anchor': 'middle', 'font-weight': 600 });
+      text(svg, x, y - 40 + 0, m.sub, { class: 'muted cn', 'font-size': 11, 'text-anchor': 'middle' });
+    });
+    /* bands */
+    var xE = ox + pw * 0.32, xX = ox + pw * 0.74;
+    el('rect', { x: xE, y: y + 32, width: xX - xE, height: 14, fill: v('--accent'), opacity: 0.25 }, svg);
+    text(svg, xE + 6, y + 43, '路由信号在这里已经变化', { class: 'cn', 'font-size': 11, fill: v('--accent') });
+    el('rect', { x: xX, y: y + 52, width: ox + pw - xX, height: 14, fill: v('--alarm'), opacity: 0.25 }, svg);
+    text(svg, xX + 6, y + 63, '文本监测通常从这里才看得见', { class: 'cn', 'font-size': 11, fill: v('--alarm') });
+    el('rect', { x: ox, y: y + 32, width: xE - ox, height: 14, fill: v('--third'), opacity: 0.18 }, svg);
+    text(svg, ox + 6, y + 43, '静默抵御：看到了但没做，不应报警', { class: 'muted cn', 'font-size': 11 }, svg);
+  })();
+
+  /* Fig 2: positioning 2x2 */
+  (function () {
+    var svg = document.getElementById('fig-position');
+    var ox = 170, oy = 30, cw = 340, chh = 110;
+    var cols = ['单轮提示 / 单个输入', 'Agent 轨迹（多步、多工具调用）'];
+    var rows = ['文本 / 稠密激活', 'MoE 专家路由'];
+    for (var r = 0; r < 2; r++) for (var c = 0; c < 2; c++) {
+      var hi = (r === 1 && c === 1);
+      el('rect', { x: ox + c * cw, y: oy + r * chh, width: cw - 6, height: chh - 6, fill: hi ? v('--accent-soft') : v('--bg'), stroke: hi ? v('--accent') : v('--line'), 'stroke-width': hi ? 2 : 1 }, svg);
+    }
+    cols.forEach(function (s, c) { text(svg, ox + c * cw + (cw - 6) / 2, oy + 2 * chh + 16, s, { class: 'cn', 'font-size': 12.5, 'text-anchor': 'middle' }); });
+    rows.forEach(function (s, r) { text(svg, ox - 14, oy + r * chh + chh / 2, s, { class: 'cn', 'font-size': 12.5, 'text-anchor': 'end' }); });
+    function cell(r, c, lines) { lines.forEach(function (s, i) { text(svg, ox + c * cw + 14, oy + r * chh + 26 + i * 18, s, { class: 'cn', 'font-size': 12 }); }); }
+    cell(0, 0, ['TaskTracker（激活差分，任务漂移）', 'PIShield / InstructDetector（注入探针）', '文本分类器（PromptGuard 等）']);
+    cell(0, 1, ['轨迹监控：MELON、AgentArmor、PrefixGuard', 'LLM 判官式监控（AlignmentCheck 等）']);
+    cell(1, 0, ['RouteScan（预填充路由，有害提示审计）', 'InnerExpert（幻觉）、MASCing（路由序列）']);
+    cell(1, 1, ['本工作：生成期逐 token 路由轨迹，', '常规流形 + 保形校准，', '以参与起点后 8/16 token 的及时性为主指标']);
+    text(svg, ox + cw + 14, oy + chh + 90, '● 此前为空', { class: 'cn', 'font-size': 11, fill: v('--accent'), 'font-weight': 600 });
+  })();
+
+  /* Fig 3: routing grid */
+  (function () {
+    var svg = document.getElementById('fig-grid');
+    var L = 16, E = 64, cw = 12, ch = 12, ox = 40, oy = 22, seed = 7;
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    var rare = [];
+    for (var l = 0; l < L; l++) { rare.push([]); for (var e = 0; e < E; e++) rare[l].push((l >= 3) && rnd() < 0.075); }
+    text(svg, ox, 14, '专家 0 … 63 →', { class: 'muted cn', 'font-size': 11 });
+    for (var l2 = 0; l2 < L; l2++) {
+      text(svg, ox - 8, oy + l2 * ch + 10, String(l2), { class: 'muted', 'font-size': 9, 'text-anchor': 'end' });
+      for (var e2 = 0; e2 < E; e2++) el('rect', { x: ox + e2 * cw, y: oy + l2 * ch, width: cw - 1.5, height: ch - 1.5, fill: rare[l2][e2] ? v('--grid-cell') : v('--grid-used') }, svg);
+    }
+    text(svg, 12, oy + 8 * ch, '层', { class: 'muted cn', 'font-size': 11, transform: 'rotate(-90 12 ' + (oy + 8 * ch) + ')', 'text-anchor': 'middle' });
+    for (var l3 = 0; l3 < L; l3++) { var picked = 0, tries = 0; while (picked < 8 && tries < 200) { var e3 = Math.floor(rnd() * E); tries++; if (!rare[l3][e3]) { el('circle', { cx: ox + e3 * cw + (cw - 1.5) / 2, cy: oy + l3 * ch + (ch - 1.5) / 2, r: 2.6, fill: v('--accent') }, svg); picked++; } } }
+    [[5, 3], [6, 2], [7, 3], [9, 2], [11, 2], [12, 3], [13, 2]].forEach(function (h) { var l4 = h[0], n = h[1], done = 0, t = 0; while (done < n && t < 400) { var e4 = Math.floor(rnd() * E); t++; if (rare[l4][e4]) { el('rect', { x: ox + e4 * cw - 1, y: oy + l4 * ch - 1, width: cw + 0.5, height: ch + 0.5, fill: 'none', stroke: v('--rare'), 'stroke-width': 2 }, svg); done++; } } });
+    text(svg, ox, oy + L * ch + 20, '● 正常 token 的选择全部落在常用坐标', { class: 'muted cn', 'font-size': 11 });
+    text(svg, ox + 300, oy + L * ch + 20, '□ 偏移 token 在层 5 到 13 征用了稀有坐标，每个都计分', { class: 'cn', 'font-size': 11, fill: v('--rare') });
+  })();
+
+  /* Fig 4: rare-coordinate share */
+  (function () {
+    var svg = document.getElementById('fig-code');
+    var ox = 260, oy = 18, pw = 560, rh = 44;
+    var rows = [{ name: '其他域偏移（写诗、数学、法律等）', lo: 78, hi: 78, col: v('--accent') }, { name: '代码 / SQL 偏移', lo: 13, hi: 20, col: v('--rare') }];
+    function X(c) { return ox + pw * c / 100; }
+    [0, 25, 50, 75, 100].forEach(function (c) { el('line', { x1: X(c), x2: X(c), y1: oy, y2: oy + rows.length * rh, class: c ? 'grid' : 'axis' }, svg); text(svg, X(c), oy + rows.length * rh + 16, c + '%', { class: 'muted', 'font-size': 11, 'text-anchor': 'middle' }); });
+    rows.forEach(function (r, i) {
+      var y = oy + i * rh + 8;
+      text(svg, ox - 10, y + 18, r.name, { class: 'cn', 'font-size': 12, 'text-anchor': 'end' });
+      el('rect', { x: X(0), y: y, width: X(r.lo) - X(0), height: 26, fill: r.col }, svg);
+      if (r.hi > r.lo) el('rect', { x: X(r.lo), y: y, width: X(r.hi) - X(r.lo), height: 26, fill: r.col, opacity: 0.4 }, svg);
+      text(svg, X(r.hi) + 6, y + 18, r.lo === r.hi ? r.lo + '%' : r.lo + '–' + r.hi + '%', { 'font-size': 12, 'font-weight': 600 });
+    });
+    text(svg, ox + pw / 2, oy + rows.length * rh + 34, '可分性能量中落在"正常流量几乎不用的专家"上的份额', { class: 'muted cn', 'font-size': 11, 'text-anchor': 'middle' });
+  })();
+
+  /* Fig 6: grouped bars R+8 */
+  (function () {
+    var svg = document.getElementById('fig-recall');
+    var groups = [{ name: 'B1→B2', n: 42, vals: [20, 11, 11, 8] }, { name: 'B2→B1', n: 31, vals: [14, 10, 9, 8] }, { name: 'h384（参与起点）', n: 45, vals: [24, 15, 14, 13] }];
+    var cols = [v('--accent'), v('--second'), v('--third'), v('--fourth')];
+    var ox = 60, oy = 20, pw = 800, ph = 220, gw = pw / groups.length, bw = 40, gap = 10;
+    function Y(f) { return oy + ph * (1 - f); }
+    [0, 0.25, 0.5, 0.75].forEach(function (f) { el('line', { x1: ox, x2: ox + pw, y1: Y(f), y2: Y(f), class: f ? 'grid' : 'axis' }, svg); text(svg, ox - 8, Y(f) + 4, (f * 100).toFixed(0) + '%', { class: 'muted', 'font-size': 11, 'text-anchor': 'end' }); });
+    groups.forEach(function (g, gi) {
+      var total = 4 * bw + 3 * gap, x0 = ox + gi * gw + (gw - total) / 2;
+      g.vals.forEach(function (val, i) { var f = val / g.n, x = x0 + i * (bw + gap); el('rect', { x: x, y: Y(f), width: bw, height: Y(0) - Y(f), fill: cols[i] }, svg); text(svg, x + bw / 2, Y(f) - 6, val + '/' + g.n, { 'font-size': 11, 'text-anchor': 'middle', 'font-weight': i === 0 ? 600 : 400 }); });
+      text(svg, ox + gi * gw + gw / 2, oy + ph + 18, g.name + '（n = ' + g.n + '）', { class: 'cn', 'font-size': 12, 'text-anchor': 'middle' });
+    });
+    text(svg, ox + pw / 2, oy + ph + 40, '偏移起点后 8 个 token 内检出的正例份额；柱上为检出数 / 正例数', { class: 'muted cn', 'font-size': 11, 'text-anchor': 'middle' });
+  })();
+
+  /* Fig 7: FAR bars */
+  (function () {
+    var svg = document.getElementById('fig-far');
+    var groups = [{ name: 'B1→B2', S: [0.050, 0.138], M: [0.075, 0.138] }, { name: 'B2→B1', S: [0.075, 0.150], M: [0.025, 0.125] }, { name: 'h384', S: [0.050, 0.118], M: [0.075, 0.118] }];
+    var ox = 60, oy = 16, pw = 800, ph = 170, gw = pw / groups.length, bw = 34, gap = 8, maxF = 0.2;
+    function Y(f) { return oy + ph * (1 - f / maxF); }
+    [0, 0.05, 0.10, 0.15, 0.20].forEach(function (f) { el('line', { x1: ox, x2: ox + pw, y1: Y(f), y2: Y(f), class: f ? 'grid' : 'axis' }, svg); text(svg, ox - 8, Y(f) + 4, f.toFixed(2), { class: 'muted', 'font-size': 11, 'text-anchor': 'end' }); });
+    el('line', { x1: ox, x2: ox + pw, y1: Y(0.10), y2: Y(0.10), stroke: v('--alarm'), 'stroke-dasharray': '5 4' }, svg);
+    text(svg, ox + pw - 4, Y(0.10) - 5, '预算 α = 0.10', { class: 'cn', 'font-size': 11, 'text-anchor': 'end', fill: v('--alarm') });
+    groups.forEach(function (g, gi) {
+      var vals = [[g.S[0], v('--accent'), 1], [g.S[1], v('--accent'), 0.45], [g.M[0], v('--second'), 1], [g.M[1], v('--second'), 0.45]];
+      var total = 4 * bw + 3 * gap, x0 = ox + gi * gw + (gw - total) / 2;
+      vals.forEach(function (b, i) { var x = x0 + i * (bw + gap); el('rect', { x: x, y: Y(b[0]), width: bw, height: Y(0) - Y(b[0]), fill: b[1], opacity: b[2] }, svg); text(svg, x + bw / 2, Y(b[0]) - 5, b[0].toFixed(3), { 'font-size': 10.5, 'text-anchor': 'middle' }); });
+      text(svg, ox + gi * gw + gw / 2, oy + ph + 18, g.name, { 'font-size': 12, 'text-anchor': 'middle' });
+    });
+    text(svg, ox + pw / 2, oy + ph + 40, '每个 episode 至少一次 CONFIRMED 报警的比例', { class: 'muted cn', 'font-size': 11, 'text-anchor': 'middle' });
+  })();
+
+  /* Fig 8: unified comparison */
+  (function () {
+    var svg = document.getElementById('fig-unified');
+    var rows = [
+      { name: '本线 S（RMC-S）', p8: 22, p16: 30, hi: true }, { name: '平行线 routine unseen8', p8: 19, p16: 23 }, { name: '本线 M（白化距离）', p8: 12, p16: 22 },
+      { name: '平行线 routine surprisal8', p8: 11, p16: 19 }, { name: '平行线 DRR（层动力学）', p8: 3, p16: 14 }, { name: '平行线 LDC（层动力学）', p8: 0, p16: 11 },
+      { name: '平行线 pooled FHTS', p8: 1, p16: 10 }, { name: '两线全部秩类 / 未见类（6 个）', p8: 0, p16: 0 }
+    ];
+    var ox = 300, oy = 14, pw = 560, rh = 34, n = 45;
+    function X(c) { return ox + pw * c / n; }
+    [0, 15, 30, 45].forEach(function (c) { el('line', { x1: X(c), x2: X(c), y1: oy, y2: oy + rows.length * rh, class: c ? 'grid' : 'axis' }, svg); text(svg, X(c), oy + rows.length * rh + 16, c + '/45', { class: 'muted', 'font-size': 11, 'text-anchor': 'middle' }); });
+    rows.forEach(function (r, i) {
+      var y = oy + i * rh + 6;
+      text(svg, ox - 10, y + 15, r.name, { class: 'cn', 'font-size': 12, 'text-anchor': 'end', 'font-weight': r.hi ? 600 : 400 });
+      el('rect', { x: X(0), y: y, width: X(r.p16) - X(0), height: 22, fill: v('--accent'), opacity: 0.35 }, svg);
+      el('rect', { x: X(0), y: y, width: X(r.p8) - X(0), height: 22, fill: v('--accent') }, svg);
+      text(svg, X(r.p16) + 6, y + 15, r.p8 + ' / ' + r.p16, { 'font-size': 11.5, 'font-weight': r.hi ? 600 : 400 });
+    });
+    text(svg, ox + pw / 2, oy + rows.length * rh + 34, '参与起点后 +8 / +16 内检出的正例数（n = 45），零容差、因果端点', { class: 'muted cn', 'font-size': 11, 'text-anchor': 'middle' });
+  })();
+})();
+</script>

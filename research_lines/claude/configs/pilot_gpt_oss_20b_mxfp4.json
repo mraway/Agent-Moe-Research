@@ -1,0 +1,23 @@
+{
+  "model_id": "openai/gpt-oss-20b",
+  "revision": "6cee5e81ee83917806bbde320786a8fb61efebee",
+  "_revision_note": "Engineering pilot only. The pilot agent MUST resolve and pin the exact commit hash into this field (huggingface_hub.model_info(...).sha) before running, and record it in the trace metadata.",
+  "cache_dir": "artifacts/hf_cache",
+  "dtype": "bfloat16",
+  "device_map": "cuda",
+  "attn_implementation": "eager",
+  "_attn_implementation_note": "GptOssPreTrainedModel._supports_sdpa is False in transformers 5.16.1 (attention sinks), so attn_implementation='sdpa' raises at load time. 'eager' is the only dependency-free option; flash_attention_3 via the kernels hub is not installed.",
+  "router_adapter": "gpt_oss",
+  "seed": 1234,
+  "max_new_tokens": 384,
+  "quantization": {
+    "method": "mxfp4",
+    "_note": "Native MXFP4 experts (transformers Mxfp4Config, dequantize=False). Requires the kernels package (installed) and triton >= 3.4 (3.7.1 installed) on a compute-capability >= 7.5 GPU (RTX 5090 is 12.0). If the quantizer falls back to dequantize=True it will emit a warning and load ~40 GB of bf16 experts: abort rather than let it fill the card. The MXFP4 path replaces GptOssMLP.forward, which is why the gpt_oss router adapter hooks mlp rather than mlp.router."
+  },
+  "chat_template_kwargs": {
+    "reasoning_effort": "low"
+  },
+  "generation_channels": true,
+  "_generation_channels_note": "Records the first generated-token index at which each harmony channel marker completes (analysis / commentary / final) into trace.json. Routing is captured for every generated token, analysis channel included.",
+  "_pilot_role": "engineering_pilot_not_data"
+}
