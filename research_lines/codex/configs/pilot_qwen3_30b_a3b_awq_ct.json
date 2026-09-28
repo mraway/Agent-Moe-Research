@@ -1,0 +1,18 @@
+{
+  "model_id": "cpatonn/Qwen3-30B-A3B-Instruct-2507-AWQ-4bit",
+  "revision": "84455dc68ee6574b9f43659e32588d0bf0ca3a21",
+  "_revision_note": "Resolved 2026-09-06 via huggingface_hub.model_info(...).sha. Pre-quantized 4-bit compressed-tensors (pack-quantized, group_size 32, symmetric int4) build of Qwen/Qwen3-30B-A3B-Instruct-2507; 18.09 GB of safetensors.",
+  "cache_dir": "artifacts/hf_cache",
+  "dtype": "bfloat16",
+  "device_map": "cuda",
+  "attn_implementation": "sdpa",
+  "router_adapter": "qwen3_moe",
+  "seed": 1234,
+  "max_new_tokens": 384,
+  "quantization": {
+    "method": null,
+    "_note": "The checkpoint self-describes through config.json quantization_config (quant_method compressed-tensors), so no transformers-side quantization_config is passed. Every layer's mlp.gate is in the compressed-tensors ignore list, so the routers stay bf16."
+  },
+  "_pilot_role": "engineering_pilot_not_data",
+  "_pilot_verdict": "DOES NOT FIT. transformers 5.16.1 stores Qwen3-MoE experts as fused 3-D nn.Parameter, while this checkpoint stores them per expert as nn.Linear weight_packed/weight_scale/weight_shape. quantizer_compressed_tensors.update_weight_conversions prepends integrations/compressed_tensors.py DecompressExperts to the qwen2_moe expert WeightConverter, which DEQUANTISES every expert to bf16 before MergeModulelist/Concatenate fuse them, so the ~29.0 B expert parameters land in VRAM as bf16 (~58 GB). See the measured failure in the pilot report."
+}

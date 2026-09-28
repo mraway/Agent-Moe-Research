@@ -1,0 +1,141 @@
+@font-face {
+  font-family: "Agent Moe Report Sans";
+  src:
+    local("Noto Sans CJK SC"),
+    local("Microsoft YaHei"),
+    url("file:///mnt/c/Windows/Fonts/msyh.ttc") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Agent Moe Report Sans";
+  src:
+    local("Noto Sans CJK SC Bold"),
+    local("Microsoft YaHei Bold"),
+    url("file:///mnt/c/Windows/Fonts/msyhbd.ttc") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+}
+
+@page {
+  size: A4;
+  margin: 20mm 18mm 20mm 18mm;
+
+  @bottom-center {
+    content: counter(page);
+    color: #667085;
+    font-size: 9pt;
+  }
+}
+
+html {
+  color: #17202a;
+  font-family: "Agent Moe Report Sans", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  color: #102a43;
+  font-weight: 700;
+  line-height: 1.25;
+  page-break-after: avoid;
+}
+
+h1 {
+  border-bottom: 2px solid #2f6f9f;
+  font-size: 22pt;
+  margin-bottom: 18pt;
+  padding-bottom: 8pt;
+}
+
+h2 {
+  border-bottom: 1px solid #bcccdc;
+  font-size: 15pt;
+  margin-top: 20pt;
+  padding-bottom: 4pt;
+}
+
+h3 {
+  font-size: 12pt;
+  margin-top: 16pt;
+}
+
+p,
+li {
+  orphans: 3;
+  widows: 3;
+}
+
+blockquote {
+  background: #f0f4f8;
+  border-left: 4px solid #2f6f9f;
+  margin: 12pt 0;
+  padding: 8pt 12pt;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 8.7pt;
+  margin: 10pt 0 14pt;
+  page-break-inside: avoid;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #bcccdc;
+  padding: 4pt 5pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #d9eaf7;
+  color: #102a43;
+  font-weight: 700;
+}
+
+tr:nth-child(even) td {
+  background: #f7f9fb;
+}
+
+code {
+  background: #f0f4f8;
+  border-radius: 2px;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 0.9em;
+  padding: 1px 3px;
+}
+
+pre {
+  background: #17202a;
+  color: #f7f9fb;
+  overflow-wrap: break-word;
+  padding: 9pt;
+  white-space: pre-wrap;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+a {
+  color: #1f5f8b;
+  text-decoration: none;
+}
+
+img,
+svg {
+  height: auto;
+  max-width: 100%;
+}

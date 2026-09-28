@@ -1,5 +1,39 @@
 # Agent-MoE Research
 
+> 发布说明（2026-09-27）：以下是原研究线的历史 README。项目已停止推进，源码/文档按该线固定提交导出；不含模型、原始数据或逐样本标注。保留范围与各线入口以[归档首页](../../README.md)为准。
+
+## Project closeout — 2026-09-27
+
+The research team has decided to discontinue this project after subsequent validation.
+This repository is being retained as a **code-and-documentation research archive**, not
+as a validated production detector or a claim that MoE routing can never be useful.
+The closeout decision is the team's assessment; this archive does not invent a new
+experimental result or replace the limitations in individual reports.
+
+Start with the [closeout and archive guide](docs/archive/2026-09-27/README.md) for the
+research index, branch provenance, environment snapshot, and data-retention boundaries.
+The later work uses **gpt-oss-20b / Agent v3**. Earlier OLMoE / Agent v2.x findings below
+are historical hypothesis-generating evidence, not conclusions transferred to the newer model.
+
+Useful entry points:
+
+- [Research handoff](docs/moe_agent_task_shift_research_handoff_v2.md)
+- [Dataset G onboarding and evaluation discipline](docs/research_v4/dataset_g_onboarding_for_codex.md)
+- [Codex mechanism workstream](docs/research_v4/codex_g_mechanism_workstream.md),
+  [M15 report](docs/research_v4/codex_g_mech_m15_report.md)
+- [Codex algorithm experiment plan](docs/research_v4/codex_g_algorithm_experiment_plan.md),
+  [A03-R report](docs/research_v4/codex_g_alg_a03r_report.md)
+- [Hidden-activation replay smoke report](docs/research_v4/codex_g_hidden_replay_smoke_report.md)
+
+Model checkpoints, raw agent trajectories, routing/activation tensors, generated datasets,
+and the local virtual environment are **not included**. Small existing synthetic fixtures,
+annotations, frozen detector coefficients, and aggregate audit results are retained where
+already part of the source archive. Code can support new collection; it cannot guarantee
+bitwise reconstruction of deleted original experiments. Historical experiment commands
+below may require external models and data that are no longer retained locally.
+
+## Historical project overview
+
 This repository is a clean experimental baseline for studying whether token-aligned Mixture-of-Experts
 routing signals can reveal unauthorized goal or plan-state changes in tool-using language-model systems.
 
@@ -41,6 +75,19 @@ The independent B2 confirmation design, frozen B1 classifier, and entirely new 2
 preregistered in [`docs/agent_v2_5_b2_plan.md`](docs/agent_v2_5_b2_plan.md). The completed independent result is
 reported in [`docs/agent_v2_5_b2_report.md`](docs/agent_v2_5_b2_report.md): the routing signal replicated, while
 the strict primary gate failed because its AUROC margin over the frozen token-hash control was below 0.05.
+
+The autonomous algorithm-research brief for the next round is
+[`docs/sequential_v2_parallel_research_brief.md`](docs/sequential_v2_parallel_research_brief.md). The research lead's
+response — a shared evaluation protocol plus three delegated, falsifiable one-class proposals (the research direction was
+narrowed to learning the routine routing manifold from normal traffic only and alarming on sustained departure: window-geometry,
+conditional, and path-dynamics manifolds) and the post-hoc pilot diagnostics that shaped them — is
+[`docs/sequential_v2_lead_proposals.md`](docs/sequential_v2_lead_proposals.md); pilot scripts and outputs are under
+`scripts/research_v2/pilot_diagnostics/` and `docs/research_v2/pilot_results/` (diagnostics only, not results).
+The implementation round that followed (shared protocol-v2 harness in `src/research_v2/`, three normal-only scorers
+WGM / CM / PDM with preregistrations and factual reports under `docs/research_v2/`) is synthesized by the research lead in
+[`docs/research_v2/lead_synthesis.md`](docs/research_v2/lead_synthesis.md): the three preregistered primaries each miss one
+gate item, several preregistered candidates pass the P1-P3 gate in both transfer directions under deployment-side
+calibration, and two candidates are proposed for freezing before a confirmation batch B3.
 
 The follow-up causal sequential analysis scores every complete 16-token window through full decode and evaluates
 alarms relative to the manually annotated task-drift boundary. B1 development and the frozen B2 protocol are in

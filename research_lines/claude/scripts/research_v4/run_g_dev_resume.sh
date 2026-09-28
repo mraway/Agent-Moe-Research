@@ -80,7 +80,12 @@ if [ ! -f "${CONFIG}" ]; then
   echo "no such subset config: ${CONFIG}" >&2; exit 2
 fi
 LOCK_DIR="/tmp/claude-1000/-home-wzh-Agent-Moe-Research--claude-worktrees-algorithm-research-proposals-427363/7e87c1f8-78bb-4b9f-9189-12780e6e8833/scratchpad"
-LOCK="${LOCK_DIR}/gpu.lock"
+# GPU_LOCK overrides *which* lock file is taken; the default is byte-for-byte the
+# path every earlier subset used.  A second research line on this machine locks
+# /home/wzh/Agent-Moe-Research/artifacts/agent_v2/gpu.lock, so a collection that has
+# to interleave with it must be told to take that file instead -- two different lock
+# files mean two model processes and a WSL2 spill.
+LOCK="${GPU_LOCK:-${LOCK_DIR}/gpu.lock}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-10}"
 SCENARIOS_PER_RUN="${SCENARIOS_PER_RUN:-40}"
 # run_agent_v3.py refuses to write into an existing --output-dir, and a plain
@@ -94,7 +99,7 @@ export TZ="${TZ_PIN:-XXX24}"
 export PYTHONPATH="${ROOT}/src:${ROOT}/scripts"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
-mkdir -p "${LOCK_DIR}" "${OUT_ROOT}"
+mkdir -p "${LOCK_DIR}" "$(dirname "${LOCK}")" "${OUT_ROOT}"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)Z_utc | local $(date +%Y-%m-%d)] $*"; }
 

@@ -214,13 +214,14 @@ class AllocationTest(unittest.TestCase):
             "g_session": (100, 100),
             "g_medium": (40, 120),
             "g_conf": (280, 720),
+            "g_conf2": (280, 720),
         }
         for subset, (scenarios, traces) in expected.items():
             self.assertEqual(len(self.plans[subset].scenarios), scenarios, subset)
             self.assertEqual(self.plans[subset].trace_count, traces, subset)
 
     def test_core_fills_the_72_cells_twice(self) -> None:
-        for subset in ("g_dev", "g_conf"):
+        for subset in ("g_dev", "g_conf", "g_conf2"):
             core = [
                 scenario
                 for scenario in self.plans[subset].scenarios
@@ -289,7 +290,7 @@ class AllocationTest(unittest.TestCase):
             self.assertEqual(sum(counts.values()), total)
 
     def test_every_allowed_topic_is_used_by_every_r_type(self) -> None:
-        for subset in ("g_fit", "g_cal", "g_conf"):
+        for subset in ("g_fit", "g_cal", "g_conf", "g_conf2"):
             used: dict[str, set[str]] = {}
             for scenario in self.plans[subset].scenarios:
                 factory = scenario["factory"]
@@ -377,17 +378,25 @@ class AllocationTest(unittest.TestCase):
         dev_type = ":".join(HELD_OUT_DEV_ONLY)
         for subset, plan in self.plans.items():
             types = {scenario["factory"]["workflow_type"] for scenario in plan.scenarios}
-            if subset != "g_conf":
+            if subset not in {"g_conf", "g_conf2"}:
                 self.assertNotIn(conf_type, types, subset)
             if subset not in {"g_dev", "g_medium"}:
                 self.assertNotIn(dev_type, types, subset)
-        self.assertIn(conf_type, {s["factory"]["workflow_type"] for s in self.plans["g_conf"].scenarios})
+        for subset in ("g_conf", "g_conf2"):
+            self.assertIn(
+                conf_type,
+                {s["factory"]["workflow_type"] for s in self.plans[subset].scenarios},
+                subset,
+            )
         self.assertIn(dev_type, {s["factory"]["workflow_type"] for s in self.plans["g_dev"].scenarios})
 
     def test_allowed_topics_respect_the_held_out_types(self) -> None:
         self.assertNotIn("warranty", allowed_topics("g_fit", "R4"))
         self.assertIn("warranty", allowed_topics("g_conf", "R4"))
+        self.assertIn("warranty", allowed_topics("g_conf2", "R4"))
         self.assertNotIn("support_case", allowed_topics("g_conf", "R4"))
+        self.assertNotIn("support_case", allowed_topics("g_conf2", "R4"))
+        self.assertNotIn("warranty", allowed_topics("g_cal", "R4"))
         self.assertIn("support_case", allowed_topics("g_dev", "R4"))
         self.assertIn("warranty", allowed_topics("g_fit", "R1"))
 

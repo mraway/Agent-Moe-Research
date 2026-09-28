@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -32,6 +33,7 @@ def annotate_chat_prompt(
     final_prompt_ids: torch.Tensor,
     *,
     generation_agent_step: int,
+    chat_template_kwargs: Mapping[str, Any] | None = None,
 ) -> TokenAnnotations:
     """Assign each rendered token to the message that introduced it.
 
@@ -39,6 +41,12 @@ def annotate_chat_prompt(
     message follows it. The longest common prefix of each incremental render
     and the final prompt therefore defines a conservative, monotonic boundary.
     Wrapper/separator tokens at a boundary belong to the following message.
+
+    ``chat_template_kwargs`` must repeat whatever was passed when rendering
+    ``final_prompt_ids``: templates that bake an option into the preamble (the
+    harmony ``reasoning_effort`` line, for one) otherwise make every
+    incremental render diverge at the same preamble token, leaving no stable
+    span for the second message. Omitting it keeps the historical render.
     """
 
     final_ids = final_prompt_ids.detach().cpu().reshape(-1).tolist()
@@ -52,11 +60,13 @@ def annotate_chat_prompt(
     template_messages = [
         {"role": message["role"], "content": message["content"]} for message in messages
     ]
+    template_kwargs = dict(chat_template_kwargs or {})
     for message_index, message in enumerate(messages):
         prefix = tokenizer.apply_chat_template(
             template_messages[: message_index + 1],
             add_generation_prompt=False,
             return_tensors="pt",
+            **template_kwargs,
         )
         prefix_ids = prefix if isinstance(prefix, torch.Tensor) else prefix["input_ids"]
         prefix_values = prefix_ids.detach().cpu().reshape(-1).tolist()

@@ -1,0 +1,9 @@
+# Optional technical-report toolchain. Keep separate from the CUDA research runtime.
+# Install with: .venv/bin/python -m pip install -r requirements-report.txt
+
+matplotlib==3.11.1
+networkx==3.6.1
+pandas==3.0.5
+pypandoc_binary==1.17
+seaborn==0.13.2
+weasyprint==69.0

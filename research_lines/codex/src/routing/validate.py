@@ -21,6 +21,32 @@ TOKEN_FIELDS = (
 )
 
 
+DEFAULT_WEIGHT_SEMANTICS = "softmax_probability_over_all_experts"
+
+
+def expected_top_k_weights(
+    *,
+    logits: torch.Tensor,
+    expert_ids: torch.Tensor,
+    selected_probabilities: torch.Tensor,
+    semantics: str,
+) -> torch.Tensor:
+    """Reconstruct the top-k weights a router architecture is expected to emit.
+
+    OLMoE without ``norm_topk_prob`` (the historical default) emits the plain
+    softmax probability of each selected expert, which is what traces without
+    a ``router`` metadata block are validated against.
+    """
+
+    if semantics in (DEFAULT_WEIGHT_SEMANTICS, "unspecified"):
+        return selected_probabilities
+    if semantics == "renormalised_softmax_probability_over_top_k":
+        return selected_probabilities / selected_probabilities.sum(dim=-1, keepdim=True)
+    if semantics == "softmax_over_selected_logits_only":
+        return torch.softmax(logits.float().gather(-1, expert_ids), dim=-1)
+    raise ValueError(f"unsupported top_k_weight_semantics: {semantics}")
+
+
 def validate_trace(trace_dir: Path, *, weight_atol: float = 0.003) -> dict[str, Any]:
     """Validate all shards in a schema-v3 trace and return diagnostics."""
 
@@ -32,6 +58,10 @@ def validate_trace(trace_dir: Path, *, weight_atol: float = 0.003) -> dict[str, 
         raise ValueError(f"expected schema_version 3, found {trace.get('schema_version')}")
     if not trace.get("complete"):
         raise ValueError("trace is marked incomplete")
+    router_metadata = trace.get("router") or {}
+    weight_semantics = str(
+        router_metadata.get("top_k_weight_semantics", DEFAULT_WEIGHT_SEMANTICS)
+    )
 
     rows = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line]
     if len(rows) != trace.get("step_count"):
@@ -114,7 +144,13 @@ def validate_trace(trace_dir: Path, *, weight_atol: float = 0.003) -> dict[str, 
         kth_probability = probabilities.topk(top_k, dim=-1).values[..., -1]
         if torch.any(selected_probabilities.min(dim=-1).values + 1e-7 < kth_probability):
             raise ValueError(f"step {expected_step} expert IDs are not a valid top-k selection")
-        weight_error = float((selected_probabilities - weights).abs().max().item())
+        expected_weights = expected_top_k_weights(
+            logits=logits,
+            expert_ids=expert_ids,
+            selected_probabilities=selected_probabilities,
+            semantics=weight_semantics,
+        )
+        weight_error = float((expected_weights - weights).abs().max().item())
         max_weight_error = max(max_weight_error, weight_error)
         if weight_error > weight_atol:
             raise ValueError(

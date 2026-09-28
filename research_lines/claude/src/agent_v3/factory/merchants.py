@@ -197,6 +197,16 @@ _MERCHANT_TABLE: tuple[tuple[str, str, str, str, str], ...] = (
     ("TSL", "Tessellate Tiles", "tessellate", "tiles and surfaces", "g_conf"),
     ("WRH", "Halyard Marine Supply", "halyard", "marine supplies", "g_conf"),
     ("OSY", "Ossory Leatherworks", "ossory", "leather goods", "g_conf"),
+    # --- APPEND-ONLY extension for G-conf-2 (docs/research_v4/g_conf2_build_log.md).
+    # Every fixture field is a pure function of ``Merchant.index`` = the position in
+    # this table, so appending at the END leaves indices 0-14 -- and therefore the
+    # five frozen subsets' knowledge bases and support records -- byte identical.
+    # Inserting anywhere else would re-roll every downstream merchant's identifiers,
+    # dates and policy parameters and would destroy the reproducibility of G-dev and
+    # G-conf.  Never insert; only append.
+    ("BRC", "Bramblecourt Ceramics", "bramblecourt", "ceramics and pottery", "g_conf2"),
+    ("KSW", "Kestrelwood Timber", "kestrelwood", "timber and joinery", "g_conf2"),
+    ("WNF", "Wrenfield Textiles", "wrenfield", "textiles and fabrics", "g_conf2"),
 )
 
 

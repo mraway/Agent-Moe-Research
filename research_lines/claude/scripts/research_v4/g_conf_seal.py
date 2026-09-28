@@ -39,8 +39,16 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "src"))
+
+from research_v2 import io_g  # noqa: E402
 
 SEAL_VERSION = "dataset-g-conf-seal-1.0.0"
+#: additive, non-destructive companion of the seal (prereg v3.2 lead ruling E14 / freeze
+#: review DATA-3): the per-ARM trace-set hashes, so stage 1 of the two-stage unsealing can
+#: PROVE it read the normal arms and only the normal arms.
+ARM_HASHES_VERSION = "dataset-g-arm-hashes-1.0.0"
+ARM_HASHES_FILENAME = "ARM_HASHES.json"
 
 #: The rule this seal exists to make checkable, quoted from the pre-registration.
 PREREG_SENTENCE = "opened once, primary cell only, after the label-freeze commit"
@@ -204,6 +212,74 @@ def build_seal(
     }
 
 
+def build_arm_hashes(root: Path, *, subset: str) -> dict[str, Any]:
+    """Per-ARM ``trace.json`` set hashes of a subset -- ADDITIVE, reads nothing else.
+
+    The seal's ``trace_json_set_sha256`` covers the whole subset in one digest, so it
+    cannot witness "stage 1 read the normal arms and nothing else" (freeze review DATA-3
+    item 5).  This block adds one digest per arm, computed by the SAME function the
+    detector harness uses (:func:`research_v2.io_g.trace_digest`), so
+    ``normal_union_sha256`` here is bit-for-bit the ``inputs.normal_trace_set_sha256`` the
+    threshold manifest records -- a reviewer can compare the two strings by eye.
+
+    Only ``trace.json`` (and the subset config that names the two hard-normal roles) is
+    read; no routing shard is opened, and nothing under ``root`` is written or chmod-ed.
+    """
+
+    per_arm: dict[str, Any] = {}
+    for variant in io_g.KNOWN_VARIANTS:
+        block = io_g.trace_digest(root, variants=(variant,))
+        per_arm[variant] = {
+            "trace_count": int(block["trace_count"]),
+            "sha256": block["sha256"],
+        }
+    normal = io_g.trace_digest(root, variants=io_g.NORMAL_VARIANTS)
+    everything = io_g.trace_digest(root)
+    return {
+        "arm_hashes_version": ARM_HASHES_VERSION,
+        "subset": subset,
+        "root": str(root.relative_to(ROOT)) if root.is_relative_to(ROOT) else str(root),
+        "computed_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "arm_identity_source": (
+            "trace.json perturbation.arm + arm directory name, with the subset config's "
+            "factory.normal_variant recovering benign_lexical / legitimate_refusal"
+        ),
+        "variant_override_source": normal.get("variant_override_source"),
+        "variant_override_config": normal.get("variant_override_config"),
+        "per_arm": per_arm,
+        "normal_variants": list(io_g.NORMAL_VARIANTS),
+        "normal_union_sha256": normal["sha256"],
+        "normal_union_trace_count": int(normal["trace_count"]),
+        "all_traces_sha256": everything["sha256"],
+        "all_traces_count": int(everything["trace_count"]),
+        "rule": (
+            "normal_union_sha256 is exactly the per-directory digest "
+            "run_detectors_g.normal_trace_manifest records in "
+            "inputs.normal_traces_per_dir[*].sha256 (it hashes RELATIVE paths plus file "
+            "content, so it does not depend on how the directory was spelled on the "
+            "command line); the manifest's top-level normal_trace_set_sha256 additionally "
+            "binds the run-dir string, so compare against the per_dir entry"
+        ),
+        "reads": "trace.json metadata + the subset config only; no routing shard",
+        "writes_nothing_under_root": True,
+    }
+
+
+def arm_hashes_destination(root: Path, subset: str, out: Path | None) -> tuple[Path, str]:
+    """Where the arm-hash file may be written without disturbing a sealed subset."""
+
+    if out is not None:
+        return Path(out), "explicit --out"
+    if os.access(root, os.W_OK):
+        return root / ARM_HASHES_FILENAME, "next to SEALED.json (the subset root is writable)"
+    fallback = ROOT / "artifacts" / "agent_v2" / "dataset_g" / f"{subset}_meta"
+    return (
+        fallback / ARM_HASHES_FILENAME,
+        f"the subset root is READ-ONLY (sealed), so the file went to {fallback} instead; "
+        "nothing under the sealed root was created, modified or chmod-ed",
+    )
+
+
 def verify(seal_path: Path) -> int:
     seal = json.loads(seal_path.read_text(encoding="utf-8"))
     root = ROOT / seal["root"]
@@ -252,6 +328,14 @@ def _args() -> argparse.Namespace:
     parser.add_argument("--out", type=Path, default=None, help="default <root>/SEALED.json")
     parser.add_argument("--no-chmod", action="store_true")
     parser.add_argument("--verify", type=Path, default=None, help="re-hash an existing seal file")
+    parser.add_argument(
+        "--arm-hashes",
+        action="store_true",
+        help="ADDITIVE mode: compute the per-ARM trace-set hashes of --root and write "
+        f"{ARM_HASHES_FILENAME}.  It re-seals NOTHING, changes no permission and touches "
+        "no file under the subset root; if that root is read-only the file is written "
+        "under artifacts/agent_v2/dataset_g/<subset>_meta/ and the output says so",
+    )
     args = parser.parse_args()
     if args.verify is not None:
         return args
@@ -275,6 +359,40 @@ def main() -> int:
     root = args.root.resolve()
     if not root.is_dir():
         raise SystemExit(f"no such subset root: {root}")
+    if args.arm_hashes:
+        payload = build_arm_hashes(root, subset=args.subset)
+        # ``args.out`` defaults to ``args.root / "SEALED.json"`` with ``args.root``
+        # exactly as it was typed, while ``root`` is resolved.  Comparing the two
+        # unresolved-vs-resolved paths made a RELATIVE --root look like an explicit
+        # --out and wrote the arm hashes INTO SEALED.json (observed on g_conf2 before
+        # its seal existed).  Resolve both sides before deciding.
+        requested_out = None if args.out is None else args.out.resolve()
+        default_out = (args.root / "SEALED.json").resolve()
+        destination, placement = arm_hashes_destination(
+            root,
+            args.subset,
+            None if requested_out is None or requested_out == default_out else requested_out,
+        )
+        payload["written_to"] = str(destination)
+        payload["placement"] = placement
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(
+            f"arm hashes for {payload['subset']}: "
+            + ", ".join(
+                f"{arm}={block['trace_count']}@{block['sha256'][:12]}"
+                for arm, block in payload["per_arm"].items()
+                if block["trace_count"]
+            )
+        )
+        print(f"  normal union = {payload['normal_union_sha256'][:16]} "
+              f"({payload['normal_union_trace_count']} traces) -- this is the string "
+              "stage 1's inputs.normal_traces_per_dir[*].sha256 must equal")
+        print(f"  {placement}")
+        print(f"  wrote {destination}")
+        return 0
     seal = build_seal(
         root,
         subset=args.subset,

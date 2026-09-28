@@ -1,83 +1,82 @@
-# Agent-Moe-Research
+# Agent-Moe-Research — 结项归档
 
-研究主题：**探索 MoE 路由中与 Agent 任务偏移有关的通用信号**。机制发现优先，简单、低成本的在线算法用于验证；路由只是监测信号之一，不作为攻击成功或阻断的唯一判据。
+本项目探索 **MoE 路由是否包含可用于 Agent 任务偏移监测的通用信号**。
+研究团队在后续验证后决定停止推进；本仓库于 **2026-09-27** 更新为代码与文档归档。
+这项结项决定不等于证明所有路由监测方法无效，也不把历史探索升级成已验证的生产方案。
 
-这是截至 **2026-09-07 的私有研究交接快照**，不是完整数据集发布，也不是已经验证可部署的安全产品。研究代码、协议与历史报告一并交接；原始实验数据和模型由研究员在各自环境准备或重新生成。
+## 阅读入口
 
-## 从这里开始
+1. [Claude 线归档索引](CLAUDE_ARCHIVE.md)：gpt-oss / Agent v3、数据工具链、v3.1–v3.3、三条早期算法支线。
+2. [Claude 对外技术报告](research_lines/claude/docs/research_v4/technical_report_gpt_oss.md)：
+   包含确认性结果、失败门和限制；是该分支当时的报告，不是本次重新评价。
+3. [Codex 机制探索 M15](research_lines/codex/docs/research_v4/codex_g_mech_m15_report.md)、
+   [算法探索 A03-R](research_lines/codex/docs/research_v4/codex_g_alg_a03r_report.md)、
+   [隐藏激活重采小样本验证](research_lines/codex/docs/research_v4/codex_g_hidden_replay_smoke_report.md)。
+4. [历史研究交接](research_lines/codex/docs/moe_agent_task_shift_research_handoff_v2.md)、
+   [发布核验记录](HANDOFF_VALIDATION.md)、[来源与逐文件 SHA-256 清单](HANDOFF_MANIFEST.json)。
 
-1. [研究交接与双研究员执行计划](research_lines/codex/docs/moe_agent_task_shift_research_handoff_v2.md)：研究目标、数据和算法历史、论文方向、A/B 分工及阶段交付。
-2. [Codex / Astra 研究线原始 README](research_lines/codex/README.md)：OLMoE、Agent v2.5、路由捕获与历史算法。
-3. [Claude 研究线原始 README](research_lines/claude/README.md)、[GPT-OSS 研究纲领](research_lines/claude/docs/research_v4/gpt_oss_research_program.md)、[Agent v3 数据设计](research_lines/claude/docs/research_v4/agent_v3_dataset_design.md)。
-4. [本次交接验证记录](HANDOFF_VALIDATION.md)与[来源及文件哈希清单](HANDOFF_MANIFEST.json)。
+OLMoE / Agent v2.x 的结果只作历史探索与假设来源；不能迁移为 gpt-oss / Agent v3 的正式证据。
+历史文档中的“下一步”“进行中”“冻结”等表述保留原样，不表示项目现在仍在运行。
 
-两条研究线分别位于 `research_lines/codex/` 和 `research_lines/claude/`，各自保留 `src/`、`scripts/`、`tests/`、`configs/`、`docs/`。它们有共同历史，但并非合并后的单一实现。**从相应研究线的目录运行脚本，分别配置环境；不要混用两个 `src`。**
+## 五份独立来源
 
-## 交接范围与来源
+| 发布目录 | 原分支 tip | 定位 |
+|---|---|---|
+| [`research_lines/codex/`](research_lines/codex/) | `3344937ecbaa` | Codex / Astra 主线，已纳入关闭前未提交的代码文档 |
+| [`research_lines/claude/`](research_lines/claude/) | `0c90f5be0b21` | Claude gpt-oss / Agent v3 主线、G 工具链与报告 |
+| [`research_lines/claude_wgm/`](research_lines/claude_wgm/) | `47191352ccb8` | 早期 WGM 窗口几何支线 |
+| [`research_lines/claude_cm/`](research_lines/claude_cm/) | `372cc5e2b6a8` | 早期 CM 条件流形支线 |
+| [`research_lines/claude_pdm/`](research_lines/claude_pdm/) | `5fabd9725f92` | 早期 PDM 路径动力学支线 |
 
-- Codex：以 `9e6ad56ba2169ec9727337bdb6b8d4d4059a534a` 为基础的当前代码/文档快照，包括尚未提交的 Astra 研究文件与最新交接计划。
-- Claude：只导出已提交的 `62be82be4d100b46df9bbf28a6ab37ad69cc997d`；不包含正在编辑的文件或临时子工作树。
-- 两个原工作区和分支均未修改。本仓库使用全新的 Git 历史，不携带原历史中的数据或已训练权重。
-- 研究代码未修改；只在发布副本中修正了 12 个跨研究线的 Markdown 导航链接。文件级哈希见 manifest。
-- 保留源代码中的任务生成模板、合成单元测试样例、声明式 Agent/模型配置，以及 Markdown 中的历史结果和少量说明性例子。
-- **不包含**模型/检测器权重、Agent 轨迹、路由张量、逐样本标注、生成的场景配置、知识库/业务记录数据文件、原始诊断输出、虚拟环境及缓存。
+这些是分别导出的源码/文档快照，**不是合并后的单一实现**。
+运行时从对应研究线目录执行，分别配置环境，不混用多个 `src/`。
+原始主检出与四个 Claude worktree 均未因发布而改写；原提交哈希仅作来源定位，
+不要求它们在这个净化后的 GitHub 仓库中是可 checkout 的提交。
 
-历史文档中的日期、结果、旧路径、标签定义与预注册状态保持原样，属于当时记录，并非本次重新验证。部分旧文档的本地路径和数据链接会不可用；从本页的交接计划导航。标为 draft、事后探索或封存的资产，不因交接而变成已确认结论或新测试集。
+GitHub 原 `main` 是 2026-09-07 的独立 handoff 快照（`d46b00e635d6`），
+与原研究仓库没有共同提交。本次沿用其目录和数据排除原则，以后继提交更新，
+不强推、不合并两条原始研究历史。完整旧 Git 历史只保留在本地恢复包中。
 
-## 本地环境与无模型检查
+## 保留与排除
 
-先选择一条研究线，例如：
+保留源代码、叙述性报告、预注册与审计、依赖版本、声明式 Agent/模型配置，
+以及 CM/WGM/PDM 的小型统计量参数 JSON。这些参数文件是算法定义，不含样本或学习到的权重。
+
+不上传模型或检测器权重、原始 Agent 轨迹、路由/隐藏激活张量、逐样本标注、
+生成的场景/知识库配置、原始诊断 JSON/CSV、环境缓存、助手会话、凭据或旧仓库 Git 对象。
+研究文档中本来就有的少量例子和聚合统计保留。
+
+完整原始数据删除后，**代码和配置不保证逐字节重建原实验**。
+历史文档指向被排除的 JSON、PDF、模型或数据目录的链接可能不可用。
+Codex 的 `docs/archive/2026-09-27/` 描述的是较宽的本地保留范围；GitHub 发布边界以本页为准。
+
+## 检查与复用
+
+`HANDOFF_MANIFEST.json` 记录每个源分支、导出路径、原 Git blob、原 SHA-256 和发布 SHA-256。
+研究实现保持原字节；仅发布副本中的导航和归档上下文说明可能调整，并逐文件登记。
+未修复或重新运行历史研究算法，未打开 G-conf / G-conf-2 原始轨迹、路由或标签。
+
+从仓库根目录检查已提交文件：
 
 ```bash
-cd research_lines/claude
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-export PYTHONPATH="$PWD/src"
-python -B -m unittest discover -s tests -p test_agent_v3_harmony.py -v
-python -B scripts/research_v4/factory_build_dataset_g.py --dry-run
+python3 -B tools/check_handoff.py
 ```
 
-依赖文件记录的是原实验环境，其中 PyTorch 使用 CUDA 13 wheel；**本次未在新机器上验证依赖安装或 GPU 兼容性**。根据自己的硬件确认环境并记录变更，不把安装成功当作模型/任务资格通过。
-
-Codex 线的无模型路由捕获检查：
+准备以后更新时：
 
 ```bash
-cd research_lines/codex
-# 使用这条研究线自己的环境，从本目录执行。
-python -B -m unittest discover -s tests -p test_routing_capture.py -v
-```
-
-以上检查不下载模型、不运行 Agent 采集。完整历史测试集中的部分测试需要已排除的数据/配置/权重，不承诺仅 clone 后即可全部通过。
-
-## 数据如何重新准备
-
-Agent v3 的 G 数据有源代码工厂。以下命令在 `research_lines/claude/` 目录执行，只构建本地场景、fixture 和配置文件，不生成模型输出：
-
-```bash
-export PYTHONPATH="$PWD/src"
-python -B scripts/research_v4/factory_build_dataset_g.py --summary
-```
-
-产物位于 `configs/dataset_g/`，默认被 Git 忽略。采集前阅读数据设计、资格门和 collection plan；模型需按配置中的版本单独准备。不要直接无筛选地跑所有场景/arms，也不要把 G-conf 默认用于新方法调参。重新生成同一批输入并不使其成为独立确认集。
-
-**已有构建器不等于所有历史批次都能从此快照完整重建。** OLMoE/Agent v2 的部分构建脚本仍依赖被排除的基础知识库、业务记录和场景配置；历史精确复算还需要原标签、路由缓存及权重。对于下一阶段，依据协议与 schema 重新构造输入、冻结新数据版本并采集；不要将新采集冒称历史逐字节复现。
-
-保留代码中的已知路径问题：部分 `scripts/research_v4/` 入口按 `parents[2]` 定位根目录，实际会落到 `scripts/`。上面的 `PYTHONPATH` 可解决导入，但不能修复所有默认文件路径。需要其他入口时，请在自己的分支核对根路径及参数，再做 CPU 小检查；本次没有改动历史研究实现。
-
-## 保持仓库轻量
-
-发布门槛为总文件内容 **30 MiB**、单文件 **1 MiB**；这是本项目的保守门槛，不是 GitHub 平台限制。初始研究文件共 1,049 个、约 13.65 MiB，另有小型交接文档和清单。
-
-`.gitignore` 阻止常见数据、权重与缓存文件，也默认忽略新增 JSON；现有的少量声明式配置已明确纳入版本控制。新增配置先人工确认只含定义、不含场景/样本，再决定是否强制加入。
-
-提交前检查实际暂存内容：
-
-```bash
-git add <已确认的代码或文档路径>
+git add <已审阅的代码或文档路径>
 python3 -B tools/check_handoff.py --index
 ```
 
-检查当前提交：`python3 -B tools/check_handoff.py`。检查覆盖允许路径、尺寸、常见密钥模式、Python 语法及初始导入文件哈希；不替代人工保密审查。研究代码后续合法修改时，需同时更新或版本化来源清单，再审核新快照。不要使用 `git push --mirror` 将旧研究仓库的全部历史带入这里。
+检查覆盖实际 Git blob 的允许路径、总尺寸、单文件尺寸、常见凭据特征、
+Python 语法及完整来源清单；不替代人工保密审核或运行时验证。
+本次五线归档将总内容上限从 30 MiB 调整到 **50 MiB**，单文件仍不得超过 **1 MiB**。
+实际尺寸与检查结果见发布核验记录，远小于原始模型和数据占用。
 
-仓库初始为私有，尚未指定开源许可证；公开发布、第三方材料许可与数据共享由项目主管另行确认。
+数据工厂代码和旧运行命令仍保留，但这不是自包含数据发布：
+部分历史测试依赖已排除的知识库、标签、配置、缓存或 tokenizer。
+未宣称 clone 后全套测试通过，未验证新机器安装或 GPU 兼容性，也未新增数据采集。
+
+当前仓库为公开可见；本次未修改仓库可见性，未添加开源许可证。
+使用与再分发须自行核对第三方代码、模型和材料的权利边界。

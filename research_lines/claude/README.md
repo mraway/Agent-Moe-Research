@@ -1,5 +1,7 @@
 # Agent-MoE Research
 
+> 发布说明（2026-09-27）：以下是原研究线的历史 README。项目已停止推进，源码/文档按该线固定提交导出；不含模型、原始数据或逐样本标注。保留范围与各线入口以[归档首页](../../README.md)为准。
+
 This repository is a clean experimental baseline for studying whether token-aligned Mixture-of-Experts
 routing signals can reveal unauthorized goal or plan-state changes in tool-using language-model systems.
 

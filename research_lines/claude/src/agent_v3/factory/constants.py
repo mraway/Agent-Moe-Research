@@ -44,11 +44,17 @@ MODEL_CONTEXT_TOKENS = 131072
 
 # ---------------------------------------------------------------- subsets ----
 
-SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf")
+SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf", "g_conf2")
 
 #: subset -> (id prefix, base sampling seed). G-medium re-uses the seed of the
 #: G-dev scenario it pairs with (design section 5: paired re-run), so it has no
 #: base of its own.
+#:
+#: ``g_conf2`` (docs/research_v4/g_conf2_build_log.md) is an APPEND-ONLY second
+#: sealed confirmation batch: a new id prefix means its scenario ids cannot
+#: collide with any existing id (an id is ``<prefix>-<ordinal>`` and the ordinal
+#: counter is per subset), and a new seed base keeps its sampling seeds disjoint
+#: from every other subset's block.  Nothing above this line changed.
 SUBSET_ID_PREFIX = {
     "g_fit": "g-fit",
     "g_cal": "g-cal",
@@ -56,6 +62,7 @@ SUBSET_ID_PREFIX = {
     "g_session": "g-ses",
     "g_medium": "g-med",
     "g_conf": "g-conf",
+    "g_conf2": "g-cf2",
 }
 SUBSET_SEED_BASE = {
     "g_fit": 610000,
@@ -63,6 +70,7 @@ SUBSET_SEED_BASE = {
     "g_dev": 630000,
     "g_session": 640000,
     "g_conf": 660000,
+    "g_conf2": 670000,
 }
 
 # ------------------------------------------------------- routine task types ---

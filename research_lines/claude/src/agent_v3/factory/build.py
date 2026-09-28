@@ -13,6 +13,7 @@ from .allocation import (
     SubsetPlan,
     build_g_cal,
     build_g_conf,
+    build_g_conf2,
     build_g_dev,
     build_g_fit,
     build_g_medium,
@@ -41,8 +42,23 @@ ROOT = Path(__file__).resolve().parents[3]
 OUTPUT_DIR = ROOT / "configs" / "dataset_g"
 FIXTURE_DIR = OUTPUT_DIR / "fixtures"
 
-SUBSET_ORDER = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf")
-FIXTURE_SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_conf")
+SUBSET_ORDER = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf", "g_conf2")
+FIXTURE_SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_conf", "g_conf2")
+
+#: Which subset "owns" each generated file, for the append-only ``only=`` mode of
+#: :func:`build_all`.  The manifest is owned by nobody: it always names every file.
+def file_owner(relative_name: str) -> str | None:
+    """The subset a generated file belongs to, or ``None`` for the manifest."""
+
+    if relative_name == "manifest.json":
+        return None
+    if relative_name == "model_gpt_oss_20b_medium.json":
+        return "g_medium"
+    stem = relative_name.removesuffix(".json")
+    for prefix in ("fixtures/kb_", "fixtures/records_", "agent_"):
+        if stem.startswith(prefix):
+            return stem[len(prefix) :]
+    return stem
 
 PURPOSE = {
     "g_fit": (
@@ -74,6 +90,14 @@ PURPOSE = {
         "fixtures, 160 attack scenarios at three arms and 120 normal scenarios at "
         "two, including the held-out workflow type that appears nowhere else."
     ),
+    "g_conf2": (
+        "Second sealed confirmation batch (G-conf-2, 720 traces), built by an "
+        "append-only extension of the frozen factory: the same 280-scenario / "
+        "720-trace allocation as G-conf over three new fixtures appended at the end "
+        "of the merchant table, a new id prefix (g-cf2) and a new seed block, so "
+        "every earlier subset's files are byte identical. See "
+        "docs/research_v4/g_conf2_build_log.md."
+    ),
 }
 
 RUN_PROTOCOL = (
@@ -94,10 +118,20 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def render_json(value: Any) -> bytes:
+    """The exact bytes :func:`write_json` would write."""
+
+    return (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
 def write_json(path: Path, value: Any) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return sha256_file(path)
+
+
+class UnexpectedRewrite(RuntimeError):
+    """A file outside ``only=`` would have changed: the build is not append-only."""
 
 
 # ------------------------------------------------------------- fixtures -----
@@ -297,28 +331,61 @@ def build_plans() -> dict[str, SubsetPlan]:
     plans["g_session"] = build_g_session(markers)
     plans["g_medium"] = build_g_medium(plans["g_dev"], markers)
     plans["g_conf"] = build_g_conf(markers)
+    # APPEND-ONLY: g_conf2 is built LAST so every earlier subset draws exactly the
+    # marker suffixes it already has from the shared counter.
+    plans["g_conf2"] = build_g_conf2(markers)
     return plans
 
 
-def build_all(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
+def build_all(
+    output_dir: Path = OUTPUT_DIR, *, only: tuple[str, ...] | None = None
+) -> dict[str, Any]:
+    """Write the dataset G configs. ``only`` restricts *writing* to those subsets.
+
+    With ``only=None`` (the default) this is the original whole-dataset build.
+
+    With ``only=("g_conf2",)`` every file is still rendered in memory, but a file
+    owned by another subset is NOT written: instead its bytes on disk are compared
+    against what the build would have produced, and :class:`UnexpectedRewrite` is
+    raised if they differ.  That makes an append-only extension *provably* additive
+    -- the frozen files are verified rather than touched -- while the manifest still
+    names every file (it gains the new subset's entries and nothing else changes).
+    """
+
+    keep = None if only is None else set(only)
     output_dir.mkdir(parents=True, exist_ok=True)
     fixture_dir = output_dir / "fixtures"
     fixture_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    verified: list[str] = []
+
+    def emit(relative: str, value: Any) -> str:
+        path = output_dir / relative
+        owner = file_owner(relative)
+        if keep is None or owner is None or owner in keep:
+            written.append(relative)
+            return write_json(path, value)
+        expected = render_json(value)
+        if not path.is_file():
+            raise UnexpectedRewrite(f"{relative} is outside only={sorted(keep)} but absent")
+        actual = path.read_bytes()
+        if actual != expected:
+            raise UnexpectedRewrite(
+                f"{relative} is outside only={sorted(keep)} but the build would change it"
+            )
+        verified.append(relative)
+        return hashlib.sha256(actual).hexdigest()
 
     hashes: dict[str, str] = {}
     summaries: dict[str, list[dict[str, Any]]] = {}
     for subset in FIXTURE_SUBSETS:
         knowledge, support, summary = fixture_payloads(subset)
-        hashes[f"kb_{subset}"] = write_json(fixture_dir / f"kb_{subset}.json", knowledge)
-        hashes[f"records_{subset}"] = write_json(
-            fixture_dir / f"records_{subset}.json", support
-        )
-        hashes[f"agent_{subset}"] = write_json(
-            output_dir / f"agent_{subset}.json", agent_config(subset)
-        )
+        hashes[f"kb_{subset}"] = emit(f"fixtures/kb_{subset}.json", knowledge)
+        hashes[f"records_{subset}"] = emit(f"fixtures/records_{subset}.json", support)
+        hashes[f"agent_{subset}"] = emit(f"agent_{subset}.json", agent_config(subset))
         summaries[subset] = summary
-    hashes["model_gpt_oss_20b_medium"] = write_json(
-        output_dir / "model_gpt_oss_20b_medium.json", medium_model_config()
+    hashes["model_gpt_oss_20b_medium"] = emit(
+        "model_gpt_oss_20b_medium.json", medium_model_config()
     )
 
     plans = build_plans()
@@ -330,7 +397,7 @@ def build_all(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
             fixture_summary=summaries[fixture_subset],
             fixture_hashes=hashes,
         )
-        hashes[subset] = write_json(output_dir / f"{subset}.json", config)
+        hashes[subset] = emit(f"{subset}.json", config)
         configs[subset] = config
 
     manifest = {
@@ -381,4 +448,11 @@ def build_all(output_dir: Path = OUTPUT_DIR) -> dict[str, Any]:
         },
     }
     write_json(output_dir / "manifest.json", manifest)
-    return {"plans": plans, "configs": configs, "manifest": manifest}
+    written.append("manifest.json")
+    return {
+        "plans": plans,
+        "configs": configs,
+        "manifest": manifest,
+        "written": written,
+        "verified_unchanged": verified,
+    }

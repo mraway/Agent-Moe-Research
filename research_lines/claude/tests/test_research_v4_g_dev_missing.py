@@ -527,6 +527,29 @@ class ResumeDriverArgumentTest(unittest.TestCase):
         self.assertIn("expandable_segments:True", text)
         self.assertIn("SCENARIOS_PER_RUN:-40", text)
         self.assertIn("flock -w 36000", text)
+        self.assertIn('LOCK="${GPU_LOCK:-${LOCK_DIR}/gpu.lock}"', text)
+
+    def test_gpu_lock_defaults_to_the_session_lock_and_is_overridable(self) -> None:
+        """GPU_LOCK only chooses *which* lock file; unset must keep the old path."""
+
+        config_path, out_root = self._complete_subset()
+        base = ["bash", str(self.SCRIPT), "--subset", "g_conf",
+                "--config", str(config_path), "--out-root", str(out_root)]
+        default = subprocess.run(
+            base,
+            capture_output=True,
+            text=True,
+            env={k: v for k, v in os.environ.items() if k != "GPU_LOCK"},
+        )
+        self.assertEqual(default.returncode, 0, default.stdout + default.stderr)
+        self.assertIn("gpu.lock", default.stdout)
+        self.assertNotIn("elsewhere.lock", default.stdout)
+
+        env = dict(os.environ)
+        env["GPU_LOCK"] = str(self.root / "elsewhere.lock")
+        overridden = subprocess.run(base, capture_output=True, text=True, env=env)
+        self.assertEqual(overridden.returncode, 0, overridden.stdout + overridden.stderr)
+        self.assertIn("elsewhere.lock", overridden.stdout)
 
     def test_the_date_pin_defaults_to_xxx24_and_is_logged(self) -> None:
         """TZ_PIN only chooses *which* pin; unset must still mean XXX24.

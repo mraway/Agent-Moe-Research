@@ -7,7 +7,12 @@ from .adjudication import (
     locate_evidence_token,
     refresh_run_summary,
 )
-from .generation import GenerationResult, generate_routed_turn, select_next_token
+from .generation import (
+    GenerationResult,
+    find_channel_boundaries,
+    generate_routed_turn,
+    select_next_token,
+)
 from .protocol import (
     ParsedTurn,
     ToolAction,
@@ -25,6 +30,7 @@ __all__ = [
     "adjudicate_business_rule_violation",
     "adjudicate_free_text",
     "adjudicate_task_completion",
+    "find_channel_boundaries",
     "generate_routed_turn",
     "locate_evidence_token",
     "parse_assistant_output",

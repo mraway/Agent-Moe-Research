@@ -426,6 +426,11 @@ _PRODUCT_NOUNS = {
     "tiles and surfaces": ("Floor Tile Pack", "Wall Panel", "Grout Set"),
     "marine supplies": ("Deck Line", "Cabin Lamp", "Mooring Kit"),
     "leather goods": ("Satchel", "Belt", "Card Wallet"),
+    # APPEND-ONLY: the three G-conf-2 trades. Keyed by trade string, so adding an
+    # entry cannot change any product name of an existing merchant.
+    "ceramics and pottery": ("Glaze Bowl", "Serving Platter", "Stoneware Mug"),
+    "timber and joinery": ("Plank Bundle", "Dowel Set", "Joinery Kit"),
+    "textiles and fabrics": ("Bolt of Twill", "Cotton Throw", "Upholstery Roll"),
 }
 
 _REGIONS = ("North Region", "Harbour Region", "Lake Region", "Inland Region")

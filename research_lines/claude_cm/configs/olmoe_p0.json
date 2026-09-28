@@ -1,0 +1,10 @@
+{
+  "model_id": "allenai/OLMoE-1B-7B-0125-Instruct",
+  "revision": "b89a7c4bc24fb9e55ce2543c9458ce0ca5c4650e",
+  "cache_dir": "artifacts/hf_cache",
+  "dtype": "bfloat16",
+  "device_map": "cuda",
+  "attn_implementation": "sdpa",
+  "seed": 1234,
+  "max_new_tokens": 32
+}

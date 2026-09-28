@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 import torch
@@ -21,6 +22,7 @@ class GenerationResult:
     output_token_count: int
     stop_reason: str
     rendered_prompt: str
+    channel_boundaries: dict[str, int] = field(default_factory=dict)
 
 
 def _token_pieces(tokenizer: Any, token_ids: torch.Tensor) -> tuple[str, ...]:
@@ -31,6 +33,36 @@ def _token_pieces(tokenizer: Any, token_ids: torch.Tensor) -> tuple[str, ...]:
         )
         for token_id in token_ids.detach().cpu().reshape(-1).tolist()
     )
+
+
+def find_channel_boundaries(
+    tokenizer: Any,
+    output_token_ids: Sequence[int],
+    markers: Mapping[str, str],
+) -> dict[str, int]:
+    """First generated-token index at which each channel marker is complete.
+
+    Used for harmony-style multi-channel outputs (gpt-oss analysis / final):
+    the returned index is the token whose arrival completes the marker, so the
+    channel body starts at ``index + 1``. ``-1`` means the marker never
+    appeared. Routing is recorded for every generated token regardless.
+    """
+
+    boundaries = {str(name): -1 for name in markers}
+    remaining = {str(name): str(marker) for name, marker in markers.items()}
+    token_ids = list(int(value) for value in output_token_ids)
+    for index in range(len(token_ids)):
+        if not remaining:
+            break
+        prefix = tokenizer.decode(
+            token_ids[: index + 1],
+            skip_special_tokens=False,
+            clean_up_tokenization_spaces=False,
+        )
+        for name in [name for name, marker in remaining.items() if marker in prefix]:
+            boundaries[name] = index
+            del remaining[name]
+    return boundaries
 
 
 def select_next_token(
@@ -85,6 +117,9 @@ def generate_routed_turn(
     temperature: float = 1.0,
     top_p: float = 1.0,
     assistant_protocol: str = "json_object",
+    chat_template_kwargs: Mapping[str, Any] | None = None,
+    channel_markers: Mapping[str, str] | None = None,
+    extra_stop_token_ids: Sequence[int] = (),
 ) -> GenerationResult:
     """Generate one natural model turn and record routing for every processed token."""
 
@@ -95,10 +130,13 @@ def generate_routed_turn(
     template_messages = [
         {"role": message["role"], "content": message["content"]} for message in messages
     ]
+    template_kwargs = dict(chat_template_kwargs or {})
+    stop_token_ids = {int(value) for value in extra_stop_token_ids}
     encoded = tokenizer.apply_chat_template(
         template_messages,
         add_generation_prompt=True,
         return_tensors="pt",
+        **template_kwargs,
     )
     prompt_ids = encoded if isinstance(encoded, torch.Tensor) else encoded["input_ids"]
     prompt_ids = prompt_ids.to(model.device)
@@ -107,6 +145,7 @@ def generate_routed_turn(
         messages,
         prompt_ids,
         generation_agent_step=agent_step,
+        chat_template_kwargs=template_kwargs,
     )
 
     with recorder.record_step(
@@ -159,6 +198,9 @@ def generate_routed_turn(
         if int(next_token.item()) == tokenizer.eos_token_id:
             stop_reason = "eos"
             break
+        if int(next_token.item()) in stop_token_ids:
+            stop_reason = "stop_token"
+            break
         if stop_on_complete_protocol_object:
             partial_ids = torch.cat(generated, dim=1)[0]
             partial_text = tokenizer.decode(
@@ -192,6 +234,12 @@ def generate_routed_turn(
         template_messages,
         add_generation_prompt=True,
         tokenize=False,
+        **template_kwargs,
+    )
+    channel_boundaries = (
+        find_channel_boundaries(tokenizer, output_ids, channel_markers)
+        if channel_markers
+        else {}
     )
     return GenerationResult(
         text=tokenizer.decode(
@@ -205,4 +253,5 @@ def generate_routed_turn(
         output_token_count=len(output_ids),
         stop_reason=stop_reason,
         rendered_prompt=str(rendered_prompt),
+        channel_boundaries=channel_boundaries,
     )

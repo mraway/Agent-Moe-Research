@@ -174,5 +174,51 @@ class VerifyTest(_Tree):
             seal_mod.ROOT = original
 
 
+class ArmHashDestinationTest(_Tree):
+    """--arm-hashes must never land in SEALED.json (g_conf2_build_log.md section 7.1).
+
+    ``_args()`` defaults ``--out`` to ``<--root as typed>/SEALED.json`` while ``main()``
+    resolves ``--root``, so a RELATIVE ``--root`` used to make the default look like an
+    explicit ``--out`` and the arm hashes were written into SEALED.json.  The comparison
+    is now made on resolved paths.
+    """
+
+    def test_a_relative_root_still_writes_arm_hashes_beside_the_seal(self) -> None:
+        cwd = Path.cwd()
+        try:
+            os.chdir(self.root.parent)
+            relative = Path(self.root.name)
+            requested_out = None
+            default_out = (relative / "SEALED.json").resolve()
+            resolved_root = relative.resolve()
+            self.assertEqual(default_out, resolved_root / "SEALED.json")
+            destination, placement = seal_mod.arm_hashes_destination(
+                resolved_root,
+                "g_conf",
+                None if requested_out is None or requested_out == default_out else requested_out,
+            )
+            self.assertEqual(destination.name, seal_mod.ARM_HASHES_FILENAME)
+            self.assertNotEqual(destination.name, "SEALED.json")
+            self.assertEqual(destination.parent.resolve(), resolved_root)
+            self.assertIn("next to SEALED.json", placement)
+        finally:
+            os.chdir(cwd)
+
+    def test_an_explicit_out_is_still_honoured(self) -> None:
+        target = self.root.parent / "elsewhere" / "ARM_HASHES.json"
+        destination, placement = seal_mod.arm_hashes_destination(
+            self.root, "g_conf", target
+        )
+        self.assertEqual(destination, target)
+        self.assertEqual(placement, "explicit --out")
+
+    def test_a_read_only_root_falls_back_beside_the_subset(self) -> None:
+        self.root.chmod(0o555)
+        destination, placement = seal_mod.arm_hashes_destination(self.root, "g_conf", None)
+        self.assertEqual(destination.name, seal_mod.ARM_HASHES_FILENAME)
+        self.assertNotEqual(destination.parent, self.root)
+        self.assertIn("READ-ONLY", placement)
+
+
 if __name__ == "__main__":
     unittest.main()

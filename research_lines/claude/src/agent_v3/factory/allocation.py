@@ -10,6 +10,9 @@
     G-session     100            100         70 normal + 30 T1 user-side sessions
     G-medium       40            120         paired re-run of 40 G-dev core
     G-conf        280            720         160 x 3 arms + 120 normals x 2 arms
+    G-conf-2      280            720         same shape as G-conf, own fixtures
+                                             (append-only extension, see
+                                             docs/research_v4/g_conf2_build_log.md)
 
 The 72 cells are ``domain_group x channel x tier x target_slot``; the target slot
 replaces the type-B factor of design section 3.3 (deferred by user decision
@@ -46,7 +49,14 @@ DATASET_ROLE = {
     "g_session": "session_level_evaluation",
     "g_medium": "reasoning_effort_sensitivity_paired",
     "g_conf": "sealed_confirmation",
+    "g_conf2": "sealed_confirmation",
 }
+
+#: Subsets that carry the G-conf-only held-out workflow type. G-conf-2 is a second
+#: sealed confirmation batch of the same shape (docs/research_v4/g_conf2_build_log.md),
+#: so ``R4:warranty`` is held out of the fit / calibration / development pools exactly
+#: as before; it is now shared by the two confirmation batches and by nothing else.
+CONFIRMATION_SUBSETS = ("g_conf", "g_conf2")
 
 #: One block of ten positions realising R1:R2:R3:R4 = 2:2:3:3 (design 15.1).
 R_TYPE_CYCLE = ("R1", "R2", "R3", "R4", "R3", "R4", "R1", "R2", "R3", "R4")
@@ -69,7 +79,7 @@ def allowed_topics(subset: str, r_type: str) -> tuple[str, ...]:
 
     topics = list(TOPICS)
     if r_type == HELD_OUT_CONF_ONLY[0]:
-        if subset not in {"g_conf"} and HELD_OUT_CONF_ONLY[1] in topics:
+        if subset not in set(CONFIRMATION_SUBSETS) and HELD_OUT_CONF_ONLY[1] in topics:
             topics.remove(HELD_OUT_CONF_ONLY[1])
     if r_type == HELD_OUT_DEV_ONLY[0]:
         if subset not in {"g_dev", "g_medium"} and HELD_OUT_DEV_ONLY[1] in topics:
@@ -498,8 +508,15 @@ def _held_out_attacks(builder: SubsetBuilder) -> list[dict[str, Any]]:
     return scenarios
 
 
-def build_g_conf(markers: MarkerCounter) -> SubsetPlan:
-    builder = SubsetBuilder("g_conf", markers)
+def _build_confirmation(subset: str, markers: MarkerCounter) -> SubsetPlan:
+    """The confirmation-batch shape: 144 core + 16 held-out x 3 arms + 120 normals x 2.
+
+    280 scenarios / 720 traces.  ``g_conf`` and ``g_conf2`` are the same allocation
+    over different fixtures, different scenario ids and a different seed block; the
+    only thing that distinguishes them is ``subset``.
+    """
+
+    builder = SubsetBuilder(subset, markers)
     core = _core_scenarios(builder, scenario_role="core")
     held_out = _held_out_attacks(builder)
     builder.group("core_72_cells", ("clean", "benign_control", "attack"), core)
@@ -514,3 +531,17 @@ def build_g_conf(markers: MarkerCounter) -> SubsetPlan:
     )
     builder.group("normal", ("clean", "benign_control"), normals)
     return builder.plan
+
+
+def build_g_conf(markers: MarkerCounter) -> SubsetPlan:
+    return _build_confirmation("g_conf", markers)
+
+
+def build_g_conf2(markers: MarkerCounter) -> SubsetPlan:
+    """G-conf-2 (append-only): the second sealed confirmation batch.
+
+    Built LAST so the global marker counter hands every earlier subset exactly the
+    suffixes it already has -- G-conf-2 only ever consumes suffixes above them.
+    """
+
+    return _build_confirmation("g_conf2", markers)

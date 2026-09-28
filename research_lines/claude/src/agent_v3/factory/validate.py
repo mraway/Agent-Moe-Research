@@ -40,7 +40,9 @@ from .constants import (
 
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG_DIR = ROOT / "configs" / "dataset_g"
-SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf")
+SUBSETS = ("g_fit", "g_cal", "g_dev", "g_session", "g_medium", "g_conf", "g_conf2")
+#: The confirmation batches: same allocation, different fixtures / ids / seeds.
+CONFIRMATION_SUBSETS = ("g_conf", "g_conf2")
 
 _HYPHENS = dict.fromkeys(
     [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212, 0x00AD], "-"
@@ -207,7 +209,7 @@ def check_fixture_disjointness(configs: dict[str, dict[str, Any]]) -> CheckResul
 def check_cell_balance(configs: dict[str, dict[str, Any]]) -> CheckResult:
     failures = []
     detail = []
-    for subset in ("g_dev", "g_conf"):
+    for subset in ("g_dev", *CONFIRMATION_SUBSETS):
         core = [
             scenario
             for scenario in configs[subset]["scenarios"]
@@ -237,7 +239,7 @@ def check_cell_balance(configs: dict[str, dict[str, Any]]) -> CheckResult:
 def check_channel_shares(configs: dict[str, dict[str, Any]]) -> CheckResult:
     failures = []
     detail = []
-    for subset in ("g_dev", "g_conf"):
+    for subset in ("g_dev", *CONFIRMATION_SUBSETS):
         scenarios = [
             scenario
             for scenario in configs[subset]["scenarios"]
@@ -265,7 +267,7 @@ def check_r_type_ratio(configs: dict[str, dict[str, Any]]) -> CheckResult:
     failures = []
     detail = []
     total_ratio = sum(R_TYPE_RATIO.values())
-    for subset in ("g_fit", "g_cal", "g_conf"):
+    for subset in ("g_fit", "g_cal", *CONFIRMATION_SUBSETS):
         counts: dict[str, int] = {}
         normals = [
             scenario
@@ -550,8 +552,9 @@ def check_markers_unique(configs: dict[str, dict[str, Any]]) -> CheckResult:
     return CheckResult(
         "markers_unique_per_scenario",
         not failures,
-        f"{len(seen)} distinct required-substring markers over the five independent "
-        f"subsets; G-medium repeats its G-dev partner's markers by construction",
+        f"{len(seen)} distinct required-substring markers over the "
+        f"{len(SUBSETS) - 1} independent subsets; G-medium repeats its G-dev "
+        f"partner's markers by construction",
         failures,
     )
 
@@ -626,20 +629,28 @@ def check_held_out_workflow(configs: dict[str, dict[str, Any]]) -> CheckResult:
             if workflow in (conf_type, dev_type):
                 found[workflow] = found.get(workflow, 0) + 1
         counts[subset] = found
-        if conf_type in found and subset != "g_conf":
-            failures.append(f"{conf_type} appears in {subset}, it is G-conf only")
+        if conf_type in found and subset not in set(CONFIRMATION_SUBSETS):
+            failures.append(
+                f"{conf_type} appears in {subset}, it is confirmation-batch only"
+            )
         if dev_type in found and subset not in {"g_dev", "g_medium"}:
             failures.append(f"{dev_type} appears in {subset}, it is G-dev only")
-    if conf_type not in counts["g_conf"]:
-        failures.append(f"{conf_type} is missing from g_conf")
+    for subset in CONFIRMATION_SUBSETS:
+        if conf_type not in counts[subset]:
+            failures.append(f"{conf_type} is missing from {subset}")
     if dev_type not in counts["g_dev"]:
         failures.append(f"{dev_type} is missing from g_dev")
     return CheckResult(
         "held_out_workflow_types",
         not failures,
-        f"held out for G-conf: {conf_type} ({counts['g_conf'].get(conf_type, 0)} "
-        f"scenarios); held out for G-dev: {dev_type} "
-        f"({counts['g_dev'].get(dev_type, 0)} scenarios)",
+        "held out for the confirmation batches: "
+        + f"{conf_type} ("
+        + ", ".join(
+            f"{subset}={counts[subset].get(conf_type, 0)}"
+            for subset in CONFIRMATION_SUBSETS
+        )
+        + f" scenarios); held out for G-dev: {dev_type} "
+        + f"({counts['g_dev'].get(dev_type, 0)} scenarios)",
         failures,
     )
 

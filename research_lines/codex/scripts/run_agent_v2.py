@@ -29,7 +29,76 @@ from agent_v2 import (  # noqa: E402
     validate_experiment_config,
 )
 from phase_a import generate_routed_turn  # noqa: E402
-from routing import RouterTraceRecorder, ShardedTraceWriter, validate_trace  # noqa: E402
+from routing import (  # noqa: E402
+    RouterTraceRecorder,
+    ShardedTraceWriter,
+    describe_model_routers,
+    validate_trace,
+)
+
+
+HARMONY_CHANNEL_MARKERS = {
+    "analysis": "<|channel|>analysis",
+    "commentary": "<|channel|>commentary",
+    "final": "<|channel|>final",
+}
+
+
+def _quantization_config(model_config: dict[str, Any]) -> Any:
+    """Build a transformers quantization config from an optional config block.
+
+    Absent, ``null`` or ``{"method": null}`` keeps the historical unquantized
+    load path byte for byte.
+    """
+
+    block = model_config.get("quantization")
+    if block is None:
+        return None
+    if not isinstance(block, dict):
+        raise ValueError("quantization must be an object")
+    method = block.get("method")
+    if method in (None, "none"):
+        return None
+    skip_modules = block.get("modules_to_not_convert")
+    if skip_modules is not None:
+        skip_modules = [str(value) for value in skip_modules]
+    if method == "bnb_nf4":
+        from transformers import BitsAndBytesConfig
+
+        return BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=bool(block.get("double_quant", True)),
+            llm_int8_skip_modules=skip_modules,
+        )
+    if method == "mxfp4":
+        from transformers import Mxfp4Config
+
+        return Mxfp4Config(dequantize=False, modules_to_not_convert=skip_modules)
+    raise ValueError(f"unsupported quantization method: {method}")
+
+
+def _chat_template_kwargs(model_config: dict[str, Any]) -> dict[str, Any]:
+    block = model_config.get("chat_template_kwargs")
+    if block is None:
+        return {}
+    if not isinstance(block, dict):
+        raise ValueError("chat_template_kwargs must be an object")
+    return dict(block)
+
+
+def _channel_markers(model_config: dict[str, Any]) -> dict[str, str]:
+    """Resolve the optional generation_channels flag into marker strings."""
+
+    block = model_config.get("generation_channels")
+    if block is None or block is False:
+        return {}
+    if block is True:
+        return dict(HARMONY_CHANNEL_MARKERS)
+    if isinstance(block, dict):
+        return {str(name): str(marker) for name, marker in block.items()}
+    raise ValueError("generation_channels must be true, false, or an object of markers")
 
 
 def _args() -> argparse.Namespace:
@@ -289,6 +358,7 @@ def _run_trace(
             "allowed_final_states": ["task_completed"],
             "response_brief": task.response_brief,
         },
+        "router": describe_model_routers(model, model_config.get("router_adapter")),
         "perturbation": perturbation,
         "policy_oracle": {
             "mode": (
@@ -480,8 +550,18 @@ def _run_trace(
             )
         max_steps = 1
 
+    chat_template_kwargs = _chat_template_kwargs(model_config)
+    channel_markers = _channel_markers(model_config)
+    extra_stop_token_ids = [int(value) for value in model_config.get("stop_token_ids", [])]
+    channel_boundaries_by_step: list[dict[str, Any]] = []
+
     with ShardedTraceWriter(output_dir, metadata) as writer:
-        with RouterTraceRecorder(model, sink=writer.write_step, retain_steps=False) as recorder:
+        with RouterTraceRecorder(
+            model,
+            sink=writer.write_step,
+            retain_steps=False,
+            router_adapter=model_config.get("router_adapter"),
+        ) as recorder:
             for agent_step in range(max_steps):
                 state_before = runtime.state
                 generated = generate_routed_turn(
@@ -499,8 +579,19 @@ def _run_trace(
                     temperature=float(decoding.get("temperature", 1.0)),
                     top_p=float(decoding.get("top_p", 1.0)),
                     assistant_protocol="json_action_or_text",
+                    chat_template_kwargs=chat_template_kwargs,
+                    channel_markers=channel_markers,
+                    extra_stop_token_ids=extra_stop_token_ids,
                 )
                 generated_token_count += generated.output_token_count
+                if channel_markers:
+                    channel_boundaries_by_step.append(
+                        {
+                            "agent_step": agent_step,
+                            "output_token_count": generated.output_token_count,
+                            "boundaries": dict(generated.channel_boundaries),
+                        }
+                    )
                 turn = session.process_assistant_output(
                     generated.text,
                     agent_step=agent_step,
@@ -527,6 +618,8 @@ def _run_trace(
                     task_state_before=state_before,
                     task_state_after=runtime.state,
                 )
+                if channel_markers:
+                    model_event["channel_boundaries"] = dict(generated.channel_boundaries)
                 _append_event(events, model_event)
 
                 if turn.parsed.kind == "invalid":
@@ -777,7 +870,13 @@ def _run_trace(
             "peak_cuda_allocated_mib": round(torch.cuda.max_memory_allocated() / 1024**2, 2),
             "peak_cuda_reserved_mib": round(torch.cuda.max_memory_reserved() / 1024**2, 2),
         }
-        writer.finalize(summary, metadata_updates={"events": events, "outcome": outcome})
+        final_metadata: dict[str, Any] = {"events": events, "outcome": outcome}
+        if channel_markers:
+            final_metadata["generation_channels"] = {
+                "markers": channel_markers,
+                "steps": channel_boundaries_by_step,
+            }
+        writer.finalize(summary, metadata_updates=final_metadata)
 
     validation = validate_trace(output_dir)
     return {
@@ -826,6 +925,10 @@ def main() -> int:
         "local_files_only": args.local_files_only,
     }
     tokenizer = AutoTokenizer.from_pretrained(model_config["model_id"], **common)
+    quantization_config = _quantization_config(model_config)
+    load_kwargs: dict[str, Any] = {}
+    if quantization_config is not None:
+        load_kwargs["quantization_config"] = quantization_config
     load_started = time.perf_counter()
     model = AutoModelForCausalLM.from_pretrained(
         model_config["model_id"],
@@ -833,6 +936,7 @@ def main() -> int:
         dtype=torch.bfloat16,
         device_map=model_config["device_map"],
         attn_implementation=model_config["attn_implementation"],
+        **load_kwargs,
     )
     model.eval()
     torch.cuda.synchronize()
@@ -883,6 +987,8 @@ def main() -> int:
         "agent_config_hash": validation_report["agent_config_hash"],
         "model_id": model_config["model_id"],
         "model_revision": model_config["revision"],
+        "quantization": model_config.get("quantization"),
+        "router": describe_model_routers(model, model_config.get("router_adapter")),
         "model_load_seconds": round(model_load_seconds, 6),
         "trace_count": len(traces),
         "primary_positive_count": sum(trace["outcome"]["primary_positive"] for trace in traces),
